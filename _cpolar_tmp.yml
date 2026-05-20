@@ -1,0 +1,9 @@
+authtoken: NWU1NDE0OGEtZjI5Yi00ZGQzLWE5NWEtZTg5NTU2ZDk2NDc1
+tunnels:
+  remoteDesktop:
+    proto: tcp
+    addr: "3389"
+  website:
+    proto: http
+    addr: "30000"
+    subdomain: yunhong

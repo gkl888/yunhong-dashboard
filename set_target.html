@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置目标 - 销售业绩看板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px}
+.container{max-width:800px;margin:0 auto;background:#fff;border-radius:20px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+h1{text-align:center;color:#667eea;margin-bottom:30px}
+.btn-back{display:inline-block;padding:12px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-decoration:none;border-radius:10px;font-weight:700;margin-bottom:20px}
+.group-item{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #eee}
+.group-item:last-child{border-bottom:none}
+.group-name{font-size:1.2em;font-weight:700;color:#333;min-width:80px}
+.group-current{color:#666;font-size:.9em;min-width:120px}
+.group-rate{font-weight:700;min-width:80px}
+.input-target{width:150px;padding:10px;border:2px solid #ddd;border-radius:8px;font-size:1em;text-align:right}
+.btn-save{padding:10px 20px;background:#4ecdc4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1em;font-weight:700}
+.btn-save:hover{background:#3db4ab}
+.msg{display:none;text-align:center;padding:10px;margin-top:15px;border-radius:8px;font-weight:700}
+.msg.success{display:block;background:#d4edda;color:#155724}
+.msg.error{display:block;background:#f8d7da;color:#721c24}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="btn-back">← 返回看板</a>
+<h1>🎯 设定月度目标</h1>
+<div id="groupList"></div>
+<div id="msg" class="msg"></div>
+</div>
+<script>
+async function loadGroups(){
+  const resp=await fetch('/api/data');
+  const data=await resp.json();
+  const list=document.getElementById('groupList');
+  list.innerHTML='';
+  data.groups.forEach(g=>{
+    const div=document.createElement('div');
+    div.className='group-item';
+    div.innerHTML=`
+      <span class="group-name">${g.name}</span>
+      <span class="group-current">当前: ¥${g.amount.toLocaleString()}</span>
+      <span class="group-rate" style="color:${g.completionRate>=100?'#27ae60':'#e74c3c'}">${g.completionRate}%</span>
+      <input class="input-target" id="target_${g.name}" type="number" value="${g.target||500000}" min="0" step="10000">
+      <button class="btn-save" onclick="saveTarget('${g.name}')">保存</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+async function saveTarget(name){
+  const input=document.getElementById('target_'+name);
+  const target=parseInt(input.value);
+  if(!target||target<=0){showMsg('请输入有效的目标金额','error');return}
+  try{
+    const resp=await fetch('/api/group/'+encodeURIComponent(name)+'/target',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({target:target})
+    });
+    const result=await resp.json();
+    if(result.success){
+      showMsg(name+' 目标已更新为 ¥'+target.toLocaleString(),'success');
+      loadGroups();
+    }else{
+      showMsg('设置失败: '+result.error,'error');
+    }
+  }catch(e){
+    showMsg('网络错误','error');
+  }
+}
+
+function showMsg(text,type){
+  const msg=document.getElementById('msg');
+  msg.textContent=text;
+  msg.className='msg '+type;
+  setTimeout(()=>{msg.className='msg'},3000);
+}
+
+loadGroups();
+</script>
+</body>
+</html>

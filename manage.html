@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理成单 - 业绩看板</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: #0a1628; color: #fff; min-height: 100vh; padding: 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header h1 { font-size: 24px; color: #00d4ff; }
+.header a { color: #00d4ff; text-decoration: none; padding: 8px 16px; border: 1px solid #00d4ff; border-radius: 6px; font-size: 14px; }
+.header a:hover { background: #00d4ff22; }
+.table-wrap { overflow-x: auto; border-radius: 12px; background: #111d33; border: 1px solid #1e3a5f; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #0d2137; color: #7eb8ff; padding: 12px 10px; text-align: left; position: sticky; top: 0; white-space: nowrap; }
+td { padding: 10px; border-top: 1px solid #1e3a5f; white-space: nowrap; }
+tr:hover td { background: #152a45; }
+.amount { color: #ffd700; font-weight: bold; }
+.group-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; color: #fff; }
+.btn { padding: 5px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; margin-right: 5px; }
+.btn-edit { background: #1a73e8; color: #fff; }
+.btn-edit:hover { background: #1557b0; }
+.btn-del { background: #dc3545; color: #fff; }
+.btn-del:hover { background: #b02a37; }
+.empty { text-align: center; padding: 60px; color: #666; font-size: 18px; }
+
+/* 编辑弹窗 */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 999; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #111d33; border: 1px solid #1e3a5f; border-radius: 12px; padding: 30px; width: 420px; max-width: 90vw; }
+.modal h2 { margin-bottom: 20px; color: #00d4ff; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 13px; }
+.form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #1e3a5f; border-radius: 6px; background: #0a1628; color: #fff; font-size: 15px; }
+.form-group select option { background: #111d33; }
+.modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+.btn-save { background: #28a745; color: #fff; }
+.btn-cancel { background: #555; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 管理成单</h1>
+  <div>
+    <a href="index.html">📊 看板</a>
+    <a href="input.html" style="margin-left:8px">📝 录入</a>
+    <a href="set_target.html" style="margin-left:8px">🎯 目标</a>
+    <a href="report.html" style="margin-left:8px">📊 月报表</a>
+    <button class="btn-add" onclick="openAdd()" style="margin-left:12px;padding:6px 14px;background:#28a745;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">➕ 添加成单</button>
+  </div>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>时间</th>
+      <th>小组</th>
+      <th>销售人员</th>
+      <th>金额(元)</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+<div class="empty" id="empty" style="display:none">暂无成单数据</div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-overlay" id="modal">
+<div class="modal">
+  <h2>✏️ 编辑成单</h2>
+  <input type="hidden" id="edit-id">
+  <div class="form-group">
+    <label>时间</label>
+    <input type="text" id="edit-time" placeholder="例如: 2026/5/18 15:30">
+  </div>
+  <div class="form-group">
+    <label>小组</label>
+    <select id="edit-group"></select>
+  </div>
+  <div class="form-group">
+    <label>销售人员</label>
+    <input type="text" id="edit-salesperson" placeholder="输入姓名">
+  </div>
+  <div class="form-group">
+    <label>金额(元)</label>
+    <input type="number" id="edit-amount" placeholder="输入金额" step="0.01" min="0.01">
+  </div>
+  <div class="modal-btns">
+    <button class="btn-save" onclick="saveEdit()">💾 保存</button>
+    <button class="btn-cancel" onclick="closeModal()">取消</button>
+  </div>
+</div>
+</div>
+
+<script>
+const GROUPS = ['一组','二组','三组','四组','五组','六组','七组','八组'];
+const GROUP_COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
+
+function loadDeals() {
+  fetch('/api/data').then(r => r.json()).then(data => {
+    const tbody = document.getElementById('tbody');
+    const empty = document.getElementById('empty');
+    tbody.innerHTML = '';
+    
+    if (!data.deals || data.deals.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    
+    data.deals.forEach(d => {
+      const gIdx = GROUPS.indexOf(d.groupName);
+      const color = gIdx >= 0 ? GROUP_COLORS[gIdx] : '#888';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.id}</td>
+        <td>${d.time}</td>
+        <td><span class="group-tag" style="background:${color}">${d.groupName}</span></td>
+        <td>${d.salesperson}</td>
+        <td class="amount">${Number(d.amount).toLocaleString()}</td>
+        <td>
+          <button class="btn btn-edit" onclick="openEdit(${d.id})">编辑</button>
+          <button class="btn btn-del" onclick="deleteDeal(${d.id})">删除</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }).catch(err => {
+    console.error('加载失败:', err);
+    alert('加载数据失败，请检查服务器是否运行');
+  });
+}
+
+function openEdit(id) {
+  fetch('/api/data').then(r => r.json()).then(data => {
+    const deal = data.deals.find(d => d.id === id);
+    if (!deal) return;
+    
+    // 填充小组下拉框
+    const sel = document.getElementById('edit-group');
+    sel.innerHTML = '';
+    GROUPS.forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g; opt.textContent = g;
+      if (g === deal.groupName) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-time').value = deal.time || '';
+    document.getElementById('edit-salesperson').value = deal.salesperson;
+    document.getElementById('edit-amount').value = deal.amount;
+    document.querySelector('.modal h2').textContent = '✏️ 编辑成单';
+    document.getElementById('modal').classList.add('show');
+  });
+}
+
+function openAdd() {
+  const sel = document.getElementById('edit-group');
+  sel.innerHTML = '';
+  GROUPS.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    sel.appendChild(opt);
+  });
+  
+  document.getElementById('edit-id').value = '';
+  document.getElementById('edit-time').value = '';
+  document.getElementById('edit-salesperson').value = '';
+  document.getElementById('edit-amount').value = '';
+  document.querySelector('.modal h2').textContent = '➕ 添加成单';
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const time = document.getElementById('edit-time').value.trim();
+  const groupName = document.getElementById('edit-group').value;
+  const salesperson = document.getElementById('edit-salesperson').value.trim();
+  const amount = parseFloat(document.getElementById('edit-amount').value);
+  
+  if (!groupName || !salesperson || !amount || amount <= 0) {
+    alert('请填写完整信息（小组、业务员、金额必填）'); return;
+  }
+  
+  const payload = {groupName, salesperson, amount};
+  if (time) payload.time = time;
+  
+  // 新增模式
+  if (!id) {
+    fetch('/api/deal', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    }).then(r => r.json()).then(res => {
+      if (res.success) { closeModal(); loadDeals(); }
+      else alert('添加失败: ' + (res.error || '未知错误'));
+    }).catch(err => alert('请求失败: ' + err));
+    return;
+  }
+  
+  // 编辑模式
+  fetch('/api/deal/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).then(res => {
+    if (res.success) { closeModal(); loadDeals(); }
+    else alert('保存失败: ' + (res.error || '未知错误'));
+  }).catch(err => alert('请求失败: ' + err));
+}
+
+function deleteDeal(id) {
+  if (!confirm('确定删除此成单？')) return;
+  
+  fetch('/api/deal/' + id, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) loadDeals();
+      else alert('删除失败: ' + (res.error || ''));
+    })
+    .catch(err => alert('请求失败: ' + err));
+}
+
+// 初始加载
+loadDeals();
+</script>
+
+</body>
+</html>

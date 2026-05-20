@@ -1,0 +1,670 @@
+{
+  "stats": {
+    "totalAmount": 1642841.3499999999,
+    "totalDeals": 83,
+    "avgDealSize": 19793
+  },
+  "groups": [
+    {
+      "name": "一组",
+      "amount": 75702.2,
+      "completionRate": 25,
+      "target": 300000
+    },
+    {
+      "name": "二组",
+      "amount": 147231.9,
+      "completionRate": 42,
+      "target": 350000
+    },
+    {
+      "name": "三组",
+      "amount": 220347.75,
+      "completionRate": 55,
+      "target": 400000
+    },
+    {
+      "name": "四组",
+      "amount": 242338.09999999998,
+      "completionRate": 61,
+      "target": 400000
+    },
+    {
+      "name": "五组",
+      "amount": 147952,
+      "completionRate": 37,
+      "target": 400000
+    },
+    {
+      "name": "六组",
+      "amount": 378210.2,
+      "completionRate": 76,
+      "target": 500000
+    },
+    {
+      "name": "七组",
+      "amount": 315575.3,
+      "completionRate": 105,
+      "target": 300000
+    },
+    {
+      "name": "八组",
+      "amount": 122230.9,
+      "completionRate": 31,
+      "target": 400000
+    }
+  ],
+  "dailyStats": [
+    {
+      "date": "5/18",
+      "amount": 73073.7
+    },
+    {
+      "date": "5/6",
+      "amount": 297048.05
+    },
+    {
+      "date": "5/7",
+      "amount": 62799.5
+    },
+    {
+      "date": "5/8",
+      "amount": 261021.7
+    },
+    {
+      "date": "5/9",
+      "amount": 186852.8
+    },
+    {
+      "date": "5/19",
+      "amount": 115720
+    },
+    {
+      "date": "5/20",
+      "amount": 63123.7
+    }
+  ],
+  "deals": [
+    {
+      "id": 86,
+      "time": "2026/5/20 17:12:21",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 27500
+    },
+    {
+      "id": 85,
+      "time": "2026/5/20 14:42:13",
+      "groupName": "八组",
+      "salesperson": "王咿婷",
+      "amount": 8593.7
+    },
+    {
+      "id": 84,
+      "time": "2026/5/20 08:32:09",
+      "groupName": "八组",
+      "salesperson": "韦翰",
+      "amount": 19596
+    },
+    {
+      "id": 83,
+      "time": "2026/5/20 08:31:50",
+      "groupName": "三组",
+      "salesperson": "王轲",
+      "amount": 7434
+    },
+    {
+      "id": 82,
+      "time": "2026/5/19 16:16:35",
+      "groupName": "八组",
+      "salesperson": "韦翰",
+      "amount": 22050
+    },
+    {
+      "id": 81,
+      "time": "2026/5/19 16:15:59",
+      "groupName": "七组",
+      "salesperson": "王哲昊",
+      "amount": 65670
+    },
+    {
+      "id": 80,
+      "time": "2026/5/19 16:11:36",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 28000
+    },
+    {
+      "id": 79,
+      "time": "2026/5/18 18:49:24",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 2850
+    },
+    {
+      "id": 78,
+      "time": "2026/5/18 18:37:20",
+      "groupName": "三组",
+      "salesperson": "李江龙",
+      "amount": 8143.4
+    },
+    {
+      "id": 75,
+      "time": "2026/5/6",
+      "groupName": "八组",
+      "salesperson": "王咿婷",
+      "amount": 8463
+    },
+    {
+      "id": 74,
+      "time": "2026/5/18",
+      "groupName": "八组",
+      "salesperson": "韦翰",
+      "amount": 1980
+    },
+    {
+      "id": 73,
+      "time": "2026/5/13",
+      "groupName": "八组",
+      "salesperson": "韦翰",
+      "amount": 10771.8
+    },
+    {
+      "id": 72,
+      "time": "2026/5/9",
+      "groupName": "八组",
+      "salesperson": "杨瑞",
+      "amount": 13538.4
+    },
+    {
+      "id": 71,
+      "time": "2026/5/8",
+      "groupName": "八组",
+      "salesperson": "杨瑞",
+      "amount": 6970.5
+    },
+    {
+      "id": 70,
+      "time": "2026/5/6",
+      "groupName": "八组",
+      "salesperson": "杨瑞",
+      "amount": 30267.5
+    },
+    {
+      "id": 69,
+      "time": "2026/5/6",
+      "groupName": "七组",
+      "salesperson": "吴涵涵",
+      "amount": 10152
+    },
+    {
+      "id": 68,
+      "time": "2026/5/8",
+      "groupName": "七组",
+      "salesperson": "王哲昊",
+      "amount": 153216
+    },
+    {
+      "id": 67,
+      "time": "2026/5/16",
+      "groupName": "七组",
+      "salesperson": "周兆",
+      "amount": 19200
+    },
+    {
+      "id": 66,
+      "time": "2026/5/15",
+      "groupName": "七组",
+      "salesperson": "周兆",
+      "amount": 1996
+    },
+    {
+      "id": 65,
+      "time": "2026/5/9",
+      "groupName": "七组",
+      "salesperson": "周兆",
+      "amount": 18525
+    },
+    {
+      "id": 64,
+      "time": "2026/5/8",
+      "groupName": "七组",
+      "salesperson": "周兆",
+      "amount": 15078.7
+    },
+    {
+      "id": 63,
+      "time": "2026/5/9",
+      "groupName": "七组",
+      "salesperson": "周兆",
+      "amount": 31737.6
+    },
+    {
+      "id": 62,
+      "time": "2026/5/6",
+      "groupName": "六组",
+      "salesperson": "张俊毅",
+      "amount": 16230
+    },
+    {
+      "id": 61,
+      "time": "2026/5/15",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 140020
+    },
+    {
+      "id": 60,
+      "time": "2026/5/12",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 7500
+    },
+    {
+      "id": 59,
+      "time": "2026/5/8",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 15078.7
+    },
+    {
+      "id": 58,
+      "time": "2026/5/12",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 8086.8
+    },
+    {
+      "id": 57,
+      "time": "2026/5/8",
+      "groupName": "六组",
+      "salesperson": "马伊帆",
+      "amount": 12312
+    },
+    {
+      "id": 56,
+      "time": "2026/5/18",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 14940
+    },
+    {
+      "id": 55,
+      "time": "2026/5/9",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 22880
+    },
+    {
+      "id": 54,
+      "time": "2026/5/8",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 12960
+    },
+    {
+      "id": 53,
+      "time": "2026/5/7",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 9000
+    },
+    {
+      "id": 52,
+      "time": "2026/5/7",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 11875.5
+    },
+    {
+      "id": 51,
+      "time": "2026/5/6",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 10800
+    },
+    {
+      "id": 50,
+      "time": "2026/5/6",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 28067.2
+    },
+    {
+      "id": 49,
+      "time": "2026/5/6",
+      "groupName": "六组",
+      "salesperson": "王浩",
+      "amount": 12960
+    },
+    {
+      "id": 48,
+      "time": "2026/5/14",
+      "groupName": "五组",
+      "salesperson": "冶俊",
+      "amount": 25380
+    },
+    {
+      "id": 47,
+      "time": "2026/5/11",
+      "groupName": "五组",
+      "salesperson": "冶俊",
+      "amount": 18908
+    },
+    {
+      "id": 46,
+      "time": "2026/5/18",
+      "groupName": "五组",
+      "salesperson": "杨凯",
+      "amount": 19360
+    },
+    {
+      "id": 45,
+      "time": "2026/5/14",
+      "groupName": "五组",
+      "salesperson": "杨凯",
+      "amount": 20570
+    },
+    {
+      "id": 44,
+      "time": "2026/5/7",
+      "groupName": "五组",
+      "salesperson": "杨凯",
+      "amount": 25724
+    },
+    {
+      "id": 43,
+      "time": "2026/5/6",
+      "groupName": "五组",
+      "salesperson": "杨凯",
+      "amount": 27930
+    },
+    {
+      "id": 42,
+      "time": "2026/5/6",
+      "groupName": "五组",
+      "salesperson": "杨凯",
+      "amount": 10080
+    },
+    {
+      "id": 41,
+      "time": "2026/5/18",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 2850
+    },
+    {
+      "id": 40,
+      "time": "2026/5/8",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 1500
+    },
+    {
+      "id": 39,
+      "time": "2026/5/11",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 240
+    },
+    {
+      "id": 38,
+      "time": "2026/5/7",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 4200
+    },
+    {
+      "id": 37,
+      "time": "2026/5/6",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 34500
+    },
+    {
+      "id": 36,
+      "time": "2026/5/8",
+      "groupName": "四组",
+      "salesperson": "马姝婧",
+      "amount": 15300
+    },
+    {
+      "id": 35,
+      "time": "2026/5/13",
+      "groupName": "四组",
+      "salesperson": "蔡琳",
+      "amount": 3914.3
+    },
+    {
+      "id": 34,
+      "time": "2026/5/9",
+      "groupName": "四组",
+      "salesperson": "蔡琳",
+      "amount": 37800
+    },
+    {
+      "id": 33,
+      "time": "2026/5/8",
+      "groupName": "四组",
+      "salesperson": "蔡琳",
+      "amount": 1500
+    },
+    {
+      "id": 32,
+      "time": "2026/5/12",
+      "groupName": "四组",
+      "salesperson": "陈康丽",
+      "amount": 35136
+    },
+    {
+      "id": 31,
+      "time": "2026/5/11",
+      "groupName": "四组",
+      "salesperson": "陈康丽",
+      "amount": 18000
+    },
+    {
+      "id": 30,
+      "time": "2026/5/9",
+      "groupName": "四组",
+      "salesperson": "陈康丽",
+      "amount": 39916.8
+    },
+    {
+      "id": 29,
+      "time": "2026/5/9",
+      "groupName": "四组",
+      "salesperson": "陈康丽",
+      "amount": 22455
+    },
+    {
+      "id": 28,
+      "time": "2026/5/6",
+      "groupName": "四组",
+      "salesperson": "陈康丽",
+      "amount": 22176
+    },
+    {
+      "id": 26,
+      "time": "2026/5/12",
+      "groupName": "三组",
+      "salesperson": "金晋兴",
+      "amount": 3528
+    },
+    {
+      "id": 25,
+      "time": "2026/5/11",
+      "groupName": "三组",
+      "salesperson": "王轲",
+      "amount": 25000
+    },
+    {
+      "id": 24,
+      "time": "2026/5/16",
+      "groupName": "三组",
+      "salesperson": "张晓磊",
+      "amount": 24000
+    },
+    {
+      "id": 23,
+      "time": "2026/5/15",
+      "groupName": "三组",
+      "salesperson": "张晓磊",
+      "amount": 24000
+    },
+    {
+      "id": 22,
+      "time": "2026/5/14",
+      "groupName": "三组",
+      "salesperson": "张晓磊",
+      "amount": 25299.6
+    },
+    {
+      "id": 21,
+      "time": "2026/5/11",
+      "groupName": "三组",
+      "salesperson": "张晓磊",
+      "amount": 12000
+    },
+    {
+      "id": 20,
+      "time": "2026/5/8",
+      "groupName": "三组",
+      "salesperson": "张晓磊",
+      "amount": 12000
+    },
+    {
+      "id": 19,
+      "time": "2026/5/7",
+      "groupName": "三组",
+      "salesperson": "张晓磊",
+      "amount": 12000
+    },
+    {
+      "id": 18,
+      "time": "2026/5/14",
+      "groupName": "三组",
+      "salesperson": "李江龙",
+      "amount": 24300
+    },
+    {
+      "id": 17,
+      "time": "2026/5/13",
+      "groupName": "三组",
+      "salesperson": "李江龙",
+      "amount": 4250
+    },
+    {
+      "id": 16,
+      "time": "2026/5/6",
+      "groupName": "三组",
+      "salesperson": "李江龙",
+      "amount": 16460.5
+    },
+    {
+      "id": 15,
+      "time": "2026/5/6",
+      "groupName": "三组",
+      "salesperson": "李江龙",
+      "amount": 6224.25
+    },
+    {
+      "id": 14,
+      "time": "2026/5/12",
+      "groupName": "三组",
+      "salesperson": "李江龙",
+      "amount": 15708
+    },
+    {
+      "id": 13,
+      "time": "2026/5/6",
+      "groupName": "二组",
+      "salesperson": "郭雪",
+      "amount": 36161.6
+    },
+    {
+      "id": 12,
+      "time": "2026/5/12",
+      "groupName": "二组",
+      "salesperson": "黄志峰",
+      "amount": 12000
+    },
+    {
+      "id": 11,
+      "time": "2026/5/12",
+      "groupName": "二组",
+      "salesperson": "黄志峰",
+      "amount": 8050
+    },
+    {
+      "id": 10,
+      "time": "2026/5/18",
+      "groupName": "二组",
+      "salesperson": "李敏",
+      "amount": 22950.3
+    },
+    {
+      "id": 9,
+      "time": "2026/5/15",
+      "groupName": "二组",
+      "salesperson": "李敏",
+      "amount": 13858
+    },
+    {
+      "id": 8,
+      "time": "2026/5/8",
+      "groupName": "二组",
+      "salesperson": "李敏",
+      "amount": 5375
+    },
+    {
+      "id": 7,
+      "time": "2026/5/6",
+      "groupName": "二组",
+      "salesperson": "李敏",
+      "amount": 4449
+    },
+    {
+      "id": 6,
+      "time": "2026/5/13",
+      "groupName": "二组",
+      "salesperson": "李敏",
+      "amount": 29988
+    },
+    {
+      "id": 5,
+      "time": "2026/5/13",
+      "groupName": "二组",
+      "salesperson": "李敏",
+      "amount": 14400
+    },
+    {
+      "id": 4,
+      "time": "2026/5/8",
+      "groupName": "一组",
+      "salesperson": "冯婉玲",
+      "amount": 9730.8
+    },
+    {
+      "id": 3,
+      "time": "2026/5/15",
+      "groupName": "一组",
+      "salesperson": "邬成雷",
+      "amount": 25830
+    },
+    {
+      "id": 2,
+      "time": "2026/5/11",
+      "groupName": "一组",
+      "salesperson": "邬成雷",
+      "amount": 18014.4
+    },
+    {
+      "id": 1,
+      "time": "2026/5/6",
+      "groupName": "一组",
+      "salesperson": "邬成雷",
+      "amount": 22127
+    }
+  ]
+}

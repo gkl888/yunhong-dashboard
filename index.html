@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购业绩实时看板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;overflow-x:hidden}
+
+/* 音频激活遮罩 */
+#audioOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#audioOverlay .inner{text-align:center}
+#audioOverlay h2{font-size:2.5em;margin-bottom:20px}
+#audioOverlay p{font-size:1.5em;color:#aaa}
+
+/* 顶部栏 */
+.header{display:flex;justify-content:center;align-items:center;padding:20px 30px;background:linear-gradient(90deg,#1a1f4e,#2d1b69);border-bottom:2px solid #667eea}
+.header h1{font-size:3em;background:linear-gradient(90deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
+
+.header-right{display:none}
+.ws-status{padding:5px 15px;border-radius:20px;font-size:.9em}
+.ws-status.connected{background:#27ae60}
+.ws-status.disconnected{background:#e74c3c}
+.nav-btn{padding:8px 18px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9em;text-decoration:none;display:inline-block}
+.nav-btn:hover{opacity:.9}
+
+/* 统计卡片 */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:20px 30px}
+.stat-card{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;text-align:center;border:1px solid rgba(102,126,234,.3)}
+.stat-card .label{font-size:.9em;color:#aaa;margin-bottom:8px}
+.stat-card .value{font-size:2em;font-weight:700}
+.stat-card .value.gold{color:#ffd700}
+.stat-card .value.cyan{color:#00d4ff}
+.stat-card .value.green{color:#2ecc71}
+
+/* 主内容 */
+.main{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding:0 30px 20px}
+
+/* 小组排名 */
+.group-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;border:1px solid rgba(102,126,234,.3)}
+.group-panel h2{font-size:1.2em;margin-bottom:15px;color:#ffd700;text-align:center}
+.group-item{display:flex;align-items:center;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.05);border-radius:10px;transition:all .3s}
+.group-item:hover{background:rgba(255,255,255,.1)}
+.group-rank{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9em;margin-right:10px;flex-shrink:0}
+.group-rank.r1{background:linear-gradient(135deg,#ffd700,#ff8c00)}
+.group-rank.r2{background:linear-gradient(135deg,#c0c0c0,#a0a0a0)}
+.group-rank.r3{background:linear-gradient(135deg,#cd7f32,#b87333)}
+.group-rank.rn{background:rgba(255,255,255,.2)}
+.group-info{flex:1}
+.group-name{font-weight:700;font-size:1em}
+.group-amount{font-size:.85em;color:#aaa}
+.group-progress{margin-top:5px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.group-progress-bar{height:100%;border-radius:3px;transition:width .5s}
+.group-rate{font-weight:700;font-size:1.1em;min-width:50px;text-align:right}
+
+/* 趋势图 */
+.chart-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;border:1px solid rgba(102,126,234,.3)}
+.chart-panel h2{font-size:1.2em;margin-bottom:15px;color:#00d4ff;text-align:center}
+.chart-bars{display:flex;align-items:flex-end;justify-content:space-around;height:280px;padding-top:80px;min-height:0}
+.chart-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;max-width:80px;min-width:30px}
+.chart-bar{width:70%;max-width:50px;min-width:20px;background:linear-gradient(180deg,#667eea,#764ba2);border-radius:5px 5px 0 0;transition:height .5s;min-height:3px}
+.chart-bar-label{margin-top:8px;font-size:.8em;color:#aaa;white-space:nowrap}
+.chart-bar-value{margin-bottom:5px;font-size:.72em;color:#ffd700;white-space:nowrap}
+.chart-empty{text-align:center;color:#555;font-size:1em;padding-top:80px;width:100%}
+
+/* 成单记录 */
+.deals-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;border:1px solid rgba(102,126,234,.3)}
+.deals-panel h2{font-size:1.2em;margin-bottom:15px;color:#2ecc71;text-align:center}
+.deal-item{padding:10px;margin-bottom:8px;background:rgba(255,255,255,.05);border-radius:8px;border-left:3px solid #2ecc71}
+.deal-group{font-weight:700;color:#ffd700;font-size:.95em}
+.deal-person{color:#00d4ff;font-size:.9em}
+.deal-amount{font-weight:700;color:#2ecc71;font-size:1.1em}
+.deal-time{color:#666;font-size:.8em}
+
+/* 庆祝弹窗 */
+#celebration{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:8000;background:rgba(0,0,0,.6);align-items:center;justify-content:center}
+#celebration.show{display:flex}
+.celebration-box{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border:3px solid #ffd700;border-radius:20px;padding:40px 60px;text-align:center;animation:celebPop .5s ease}
+.celebration-box h2{font-size:2em;color:#ffd700;margin-bottom:15px;animation:celebBounce 1s infinite}
+.celebration-box .deal-info{font-size:1.3em;margin:10px 0}
+.celebration-box .deal-amount{font-size:2.5em;color:#2ecc71;font-weight:700;margin:15px 0}
+@keyframes celebPop{0%{transform:scale(0)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes celebBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* 五彩纸屑 */
+.confetti{position:fixed;top:-10px;z-index:8001;pointer-events:none;animation:confettiFall 3s linear forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- 音频激活遮罩 -->
+<div id="audioOverlay" onclick="activateAudio()">
+<div class="inner">
+<h2>🔊 点击激活语音播报</h2>
+<p>浏览器要求用户交互后才能播放声音</p>
+</div>
+</div>
+
+<!-- 顶部 -->
+<div class="header">
+<h1>🏆 采购业绩实时看板</h1>
+<div class="header-right">
+<span id="wsStatus" class="ws-status disconnected">未连接</span>
+<a href="input.html" class="nav-btn">📝 成单录入</a>
+<a href="manage.html" class="nav-btn">📋 管理成单</a>
+<a href="set_target.html" class="nav-btn">🎯 设置目标</a>
+<a href="report.html" class="nav-btn">📊 月报表</a>
+</div>
+</div>
+
+<!-- 统计 -->
+<div class="stats-row">
+<div class="stat-card"><div class="label">累计业绩</div><div class="value gold" id="totalAmount">-</div></div>
+<div class="stat-card"><div class="label">成交笔数</div><div class="value cyan" id="totalDeals">-</div></div>
+<div class="stat-card"><div class="label">平均单价</div><div class="value green" id="avgDealSize">-</div></div>
+</div>
+
+<!-- 主内容 -->
+<div class="main">
+<div class="group-panel"><h2>📊 小组排名</h2><div id="groupList"></div></div>
+<div class="chart-panel"><h2>📈 近7日趋势</h2><div class="chart-bars" id="chartBars"></div></div>
+<div class="deals-panel"><h2>🔔 最新成单</h2><div id="dealList"></div></div>
+</div>
+
+<!-- 庆祝弹窗 -->
+<div id="celebration">
+<div class="celebration-box">
+<h2>🎉🎉 恭喜成单！🎉🎉</h2>
+<div class="deal-info" id="celebGroup"></div>
+<div class="deal-info" id="celebPerson"></div>
+<div class="deal-amount" id="celebAmount"></div>
+</div>
+</div>
+
+<script>
+let audioCtx = null;
+let ws = null;
+
+function activateAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  document.getElementById('audioOverlay').style.display = 'none';
+  // Also test speech
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  }
+}
+
+function playBellAudio() {
+  return new Promise(resolve => {
+    if (!audioCtx) { resolve(); return; }
+    const now = audioCtx.currentTime;
+    // 清脆单音铃声 - 440Hz，4秒自然衰减
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 4.0);
+    osc.start(now); osc.stop(now + 4.0);
+    setTimeout(resolve, 4200);
+  });
+}
+
+function playApplauseAudio() {
+  return new Promise(resolve => {
+    const a = new Audio('applause.wav');
+    a.volume = 0.8;
+    a.onended = resolve;
+    a.onerror = resolve;
+    a.play().catch(resolve);
+  });
+}
+
+function playCelebrationSound() {
+  if (!audioCtx) return;
+  // 庆祝旋律（敲钟+掌声之后播放）
+  const notes = [523, 659, 784, 1047, 1319];
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.3);
+    osc.start(audioCtx.currentTime + i * 0.15);
+    osc.stop(audioCtx.currentTime + i * 0.15 + 0.3);
+  });
+}
+
+function speak(text, times = 1) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  let count = 0;
+  function doSpeak() {
+    if (count >= times) return;
+    count++;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.rate = 1;
+    u.pitch = 1.8;
+    u.volume = 1;
+    u.onend = doSpeak;
+    speechSynthesis.speak(u);
+  }
+  doSpeak();
+}
+
+function playCheerSound() {
+  if (!audioCtx) return;
+  // 祝贺欢呼声 - 模拟人群欢呼（多层叠加的噪声+正弦波）
+  const dur = 1.5;
+  for (let i = 0; i < 6; i++) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    // 混合不同波形模拟人群
+    osc.type = i % 2 === 0 ? 'sawtooth' : 'square';
+    osc.frequency.value = 200 + Math.random() * 400;
+    filter.type = 'bandpass';
+    filter.frequency.value = 800 + Math.random() * 1200;
+    filter.Q.value = 0.5;
+    // 随机延迟营造人群此起彼伏感
+    const delay = Math.random() * 0.3;
+    gain.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.15, audioCtx.currentTime + delay + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + dur);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + dur + 0.1);
+  }
+}
+
+function showCelebration(deal) {
+  // 1. 清脆敲铃声 4秒
+  playBellAudio().then(() => {
+    speak('恭喜！' + deal.groupName + '的' + deal.salesperson + '成单' + deal.amount + '元！', 2);
+  });
+  
+  // Popup
+  document.getElementById('celebGroup').textContent = deal.groupName;
+  document.getElementById('celebPerson').textContent = '业务员: ' + deal.salesperson;
+  document.getElementById('celebAmount').textContent = '¥' + deal.amount.toLocaleString();
+  document.getElementById('celebration').className = 'show';
+  
+  // Confetti
+  for (let i = 0; i < 50; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.width = (Math.random() * 10 + 5) + 'px';
+    el.style.height = (Math.random() * 10 + 5) + 'px';
+    el.style.background = ['#ffd700','#ff6b6b','#4ecdc4','#667eea','#ff8c00','#2ecc71'][Math.floor(Math.random()*6)];
+    el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+    el.style.animationDelay = (Math.random() * 0.5) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+  
+  // Auto close
+  setTimeout(() => {
+    document.getElementById('celebration').className = '';
+  }, 4000);
+}
+
+function formatMoney(n) {
+  if (n >= 10000) return '¥' + (n / 10000).toFixed(1) + '万';
+  return '¥' + n.toLocaleString();
+}
+
+function renderData(data) {
+  // Stats
+  document.getElementById('totalAmount').textContent = formatMoney(data.stats.totalAmount);
+  document.getElementById('totalDeals').textContent = data.stats.totalDeals;
+  document.getElementById('avgDealSize').textContent = formatMoney(data.stats.avgDealSize);
+  
+  // Groups
+  const sorted = [...data.groups].sort((a, b) => b.amount - a.amount);
+  const gList = document.getElementById('groupList');
+  gList.innerHTML = '';
+  sorted.forEach((g, i) => {
+    const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
+    const barColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
+    const rateColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
+    gList.innerHTML += `
+      <div class="group-item">
+        <div class="group-rank ${rankClass}">${i+1}</div>
+        <div class="group-info">
+          <div class="group-name">${g.name}</div>
+          <div class="group-amount">${formatMoney(g.amount)} / 目标 ${formatMoney(g.target||500000)}</div>
+          <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
+        </div>
+        <div class="group-rate" style="color:${rateColor}">${g.completionRate}%</div>
+      </div>`;
+  });
+  
+  // Chart
+  const chartEl = document.getElementById('chartBars');
+  chartEl.innerHTML = '';
+  if (!data.dailyStats || data.dailyStats.length === 0) {
+    chartEl.innerHTML = '<div class="chart-empty">暂无数据</div>';
+  } else {
+    const maxAmt = Math.max(1, ...data.dailyStats.map(d => d.amount));
+    data.dailyStats.forEach(d => {
+      const h = Math.round((d.amount / maxAmt) * 220);
+      chartEl.innerHTML += `
+        <div class="chart-bar-wrap">
+          <div class="chart-bar-value">${formatMoney(d.amount)}</div>
+          <div class="chart-bar" style="height:${h}px"></div>
+          <div class="chart-bar-label">${d.date}</div>
+        </div>`;
+    });
+  }
+  
+  // Deals
+  const dList = document.getElementById('dealList');
+  dList.innerHTML = '';
+  data.deals.slice(0, 10).forEach(d => {
+    dList.innerHTML += `
+      <div class="deal-item">
+        <div class="deal-group">${d.groupName} · <span class="deal-person">${d.salesperson}</span></div>
+        <div class="deal-amount">${formatMoney(d.amount)}</div>
+        <div class="deal-time">${d.time}</div>
+      </div>`;
+  });
+}
+
+// Load initial data
+async function loadData() {
+  try {
+    const resp = await fetch('/api/data');
+    const data = await resp.json();
+    renderData(data);
+  } catch(e) {
+    console.error('Load data failed:', e);
+  }
+}
+
+// WebSocket
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host);
+  
+  ws.onopen = () => {
+    document.getElementById('wsStatus').textContent = '✅ 实时连接';
+    document.getElementById('wsStatus').className = 'ws-status connected';
+  };
+  
+  ws.onclose = () => {
+    document.getElementById('wsStatus').textContent = '❌ 未连接';
+    document.getElementById('wsStatus').className = 'ws-status disconnected';
+    setTimeout(connectWS, 3000);
+  };
+  
+  ws.onerror = () => {};
+  
+  ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(evt.data);
+      if (msg.type === 'new_deal') {
+        showCelebration(msg.deal);
+        loadData(); // refresh
+      } else if (msg.type === 'update_deal' || msg.type === 'delete_deal' || msg.type === 'update_target') {
+        loadData();
+      }
+    } catch(e) {}
+  };
+}
+
+loadData();
+connectWS();
+// Auto refresh every 30s
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>

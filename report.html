@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月报表 - 采购业绩看板</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: #0a1628; color: #fff; min-height: 100vh; padding: 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.header h1 { font-size: 24px; color: #00d4ff; }
+.header a { color: #00d4ff; text-decoration: none; padding: 8px 16px; border: 1px solid #00d4ff; border-radius: 6px; font-size: 14px; }
+.header a:hover { background: #00d4ff22; }
+
+/* 月份选择 */
+.month-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #111d33; padding: 15px 20px; border-radius: 12px; border: 1px solid #1e3a5f; }
+.month-bar label { color: #aaa; font-size: 14px; }
+.month-bar select { padding: 8px 14px; background: #0a1628; color: #fff; border: 1px solid #1e3a5f; border-radius: 6px; font-size: 15px; cursor: pointer; }
+.month-bar button { padding: 8px 20px; background: #28a745; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.month-bar button:hover { background: #218838; }
+
+/* 统计卡片 */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: linear-gradient(135deg, #1a1f4e, #2d1b69); border-radius: 12px; padding: 20px; border: 1px solid rgba(102,126,234,.3); text-align: center; }
+.stat-card .label { font-size: 13px; color: #aaa; margin-bottom: 8px; }
+.stat-card .value { font-size: 28px; font-weight: bold; color: #00d4ff; }
+.stat-card .value.gold { color: #ffd700; }
+.stat-card .value.green { color: #28a745; }
+
+/* 小组报表 */
+.section { background: #111d33; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #1e3a5f; }
+.section h2 { font-size: 18px; color: #00d4ff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.table-wrap { overflow-x: auto; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #0d2137; color: #7eb8ff; padding: 12px 10px; text-align: left; white-space: nowrap; }
+td { padding: 10px; border-top: 1px solid #1e3a5f; white-space: nowrap; }
+tr:hover td { background: #152a45; }
+.amount { color: #ffd700; font-weight: bold; }
+.rate { font-weight: bold; }
+.rate-good { color: #28a745; }
+.rate-warn { color: #ffc107; }
+.rate-bad { color: #dc3545; }
+.group-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; color: #fff; }
+
+/* 进度条 */
+.progress-wrap { width: 120px; height: 8px; background: #1e3a5f; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.progress-bar { height: 100%; border-radius: 4px; transition: width .3s; background: linear-gradient(90deg, #667eea, #764ba2); }
+
+/* 每日明细 */
+.daily-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.day-card { background: #0d2137; border-radius: 8px; padding: 12px 8px; text-align: center; }
+.day-card .date { font-size: 12px; color: #888; margin-bottom: 4px; }
+.day-card .amt { font-size: 14px; color: #ffd700; font-weight: bold; }
+
+/* 导出按钮 */
+.export-btn { padding: 8px 20px; background: #667eea; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 10px; }
+.export-btn:hover { background: #5a6fd6; }
+
+.empty { text-align: center; padding: 40px; color: #666; font-size: 16px; }
+
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .header a, .month-bar button, .export-btn { display: none; }
+  .stat-card, .section { border: 1px solid #ccc; background: #f9f9f9; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 月报表</h1>
+  <div>
+    <a href="index.html">📊 看板</a>
+    <a href="manage.html" style="margin-left:8px">📋 管理</a>
+    <a href="input.html" style="margin-left:8px">📝 录入</a>
+  </div>
+</div>
+
+<div class="month-bar">
+  <label>选择月份：</label>
+  <select id="monthSel"></select>
+  <button onclick="loadReport()">查询</button>
+  <button class="export-btn" onclick="exportReport()">📥 导出CSV</button>
+</div>
+
+<div class="stats-row" id="statsRow"></div>
+
+<div class="section">
+  <h2>🏆 小组业绩汇总</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>排名</th><th>小组</th><th>目标</th><th>完成金额</th><th>成单数</th><th>完成率</th></tr>
+      </thead>
+      <tbody id="groupBody"></tbody>
+    </table>
+    <div class="empty" id="groupEmpty" style="display:none">暂无数据</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>📅 每日业绩明细</h2>
+  <div class="daily-grid" id="dailyGrid"></div>
+  <div class="empty" id="dailyEmpty" style="display:none">暂无数据</div>
+</div>
+
+<div class="section">
+  <h2>📝 成单明细</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>时间</th><th>小组</th><th>业务员</th><th>金额</th></tr>
+      </thead>
+      <tbody id="dealBody"></tbody>
+    </table>
+    <div class="empty" id="dealEmpty" style="display:none">暂无数据</div>
+  </div>
+</div>
+
+<script>
+const GROUPS = ['一组','二组','三组','四组','五组','六组','七组','八组'];
+const GROUP_COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
+let currentData = null;
+
+// 初始化月份选择
+function initMonths() {
+  const sel = document.getElementById('monthSel');
+  sel.innerHTML = '';
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const v = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = d.getFullYear() + '年' + (d.getMonth() + 1) + '月';
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function loadReport() {
+  const month = document.getElementById('monthSel').value;
+  
+  fetch('/api/report?month=' + month)
+    .then(r => r.json())
+    .then(data => {
+      currentData = data;
+      renderStats(data);
+      renderGroups(data.groups);
+      renderDaily(data.daily);
+      renderDeals(data.deals);
+    })
+    .catch(err => {
+      console.error(err);
+      alert('加载报表失败');
+    });
+}
+
+function renderStats(d) {
+  const row = document.getElementById('statsRow');
+  row.innerHTML = `
+    <div class="stat-card"><div class="label">总销售额</div><div class="value gold">${formatMoney(d.totalAmount)}</div></div>
+    <div class="stat-card"><div class="label">成单总数</div><div class="value">${d.totalDeals} 单</div></div>
+    <div class="stat-card"><div class="label">总目标</div><div class="value">${formatMoney(d.totalTarget)}</div></div>
+    <div class="stat-card"><div class="label">整体完成率</div><div class="value ${d.overallCompletion >= 100 ? 'green' : ''}">${d.overallCompletion}%</div></div>
+  `;
+}
+
+function renderGroups(groups) {
+  const tbody = document.getElementById('groupBody');
+  const empty = document.getElementById('groupEmpty');
+  tbody.innerHTML = '';
+  
+  // 按完成率排序
+  const sorted = [...groups].sort((a, b) => b.completionRate - a.completionRate);
+  
+  sorted.forEach((g, idx) => {
+    const gIdx = GROUPS.indexOf(g.name);
+    const color = gIdx >= 0 ? GROUP_COLORS[gIdx] : '#888';
+    const rateClass = g.completionRate >= 100 ? 'rate-good' : g.completionRate >= 50 ? 'rate-warn' : 'rate-bad';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td><span class="group-tag" style="background:${color}">${g.name}</span></td>
+      <td>${formatMoney(g.target)}</td>
+      <td class="amount">${formatMoney(g.amount)}</td>
+      <td>${g.dealCount}</td>
+      <td>
+        <span class="progress-wrap"><span class="progress-bar" style="width:${Math.min(g.completionRate,100)}%"></span></span>
+        <span class="rate ${rateClass}">${g.completionRate}%</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  
+  empty.style.display = groups.length === 0 && groups.every(g => g.dealCount === 0) ? 'block' : 'none';
+}
+
+function renderDaily(daily) {
+  const grid = document.getElementById('dailyGrid');
+  const empty = document.getElementById('dailyEmpty');
+  grid.innerHTML = '';
+  
+  if (!daily || daily.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  
+  daily.forEach(d => {
+    grid.innerHTML += `<div class="day-card"><div class="date">${d.date}</div><div class="amt">${formatMoney(d.amount)}</div></div>`;
+  });
+}
+
+function renderDeals(deals) {
+  const tbody = document.getElementById('dealBody');
+  const empty = document.getElementById('dealEmpty');
+  tbody.innerHTML = '';
+  
+  if (!deals || deals.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  
+  deals.forEach(d => {
+    const gIdx = GROUPS.indexOf(d.groupName);
+    const color = gIdx >= 0 ? GROUP_COLORS[gIdx] : '#888';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.id}</td>
+      <td>${d.time}</td>
+      <td><span class="group-tag" style="background:${color}">${d.groupName}</span></td>
+      <td>${d.salesperson}</td>
+      <td class="amount">${Number(d.amount).toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function formatMoney(n) {
+  if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+  return Number(n).toLocaleString();
+}
+
+function exportReport() {
+  if (!currentData || !currentData.deals) return alert('没有数据可导出');
+  
+  let csv = '\uFEFFID,时间,小组,业务员,金额\n';
+  currentData.deals.forEach(d => {
+    csv += `${d.id},${d.time},${d.groupName},${d.salesperson},${d.amount}\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `月报表_${currentData.month}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+initMonths();
+loadReport();
+</script>
+
+</body>
+</html>

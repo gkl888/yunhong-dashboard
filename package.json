@@ -1,0 +1,13 @@
+{
+  "name": "yunhong-dashboard",
+  "version": "1.0.0",
+  "description": "采购业绩实时看板",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "playwright": "^1.60.0",
+    "ws": "^8.20.1"
+  }
+}
