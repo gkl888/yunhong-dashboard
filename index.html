@@ -297,7 +297,7 @@ function renderData(data) {
         <div class="group-rank ${rankClass}">${i+1}</div>
         <div class="group-info">
           <div class="group-name">${g.name}</div>
-          <div class="group-amount">${formatMoney(g.amount)} / 目标 ${formatMoney(g.target||500000)}</div>
+          <div class="group-amount">${formatMoney(g.amount, true)} / 目标 ${formatMoney(g.target||500000, true)}</div>
           <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
         </div>
         <div class="group-rate" style="color:${rateColor}">${g.completionRate}%</div>
