@@ -339,19 +339,26 @@ function renderData(data) {
   // Chart
   const chartEl = document.getElementById('chartBars');
   chartEl.innerHTML = '';
-  // 从 dailyStats 中取最近7天有数据的记录
+  // 按实际时间轴生成最近7个工作日（跳过周日）
   let recent7 = [];
   if (data.dailyStats && data.dailyStats.length > 0) {
-    // 按日期升序排列（早→晚），日期格式 M/D
-    const sorted = [...data.dailyStats].sort((a, b) => {
-      const [ma, da] = a.date.split('/').map(Number);
-      const [mb, db] = b.date.split('/').map(Number);
-      if (ma !== mb) return ma - mb;
-      return da - db;
-    });
-    recent7 = sorted.slice(-7);
+    const dailyMap = {};
+    data.dailyStats.forEach(d => { dailyMap[d.date] = d.amount; });
+
+    // 从今天往前推，取最近7个非周日
+    const today = new Date();
+    const days = [];
+    for (let i = 0; i < 14 && days.length < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      if (d.getDay() !== 0) {
+        days.push({ date: (d.getMonth()+1) + '/' + d.getDate(), ts: d.getTime() });
+      }
+    }
+    days.reverse();
+    recent7 = days.map(item => ({ date: item.date, amount: dailyMap[item.date] || 0 }));
   }
-  
+
   if (recent7.length === 0) {
     chartEl.innerHTML = '<div class="chart-empty">暂无数据</div>';
   } else {
@@ -360,7 +367,7 @@ function renderData(data) {
       const h = Math.round((d.amount / maxAmt) * 220);
       chartEl.innerHTML += `
         <div class="chart-bar-wrap">
-          <div class="chart-bar-value">${formatMoney(d.amount, false, true)}</div>
+          <div class="chart-bar-value">${d.amount > 0 ? formatMoney(d.amount, false, true) : ''}</div>
           <div class="chart-bar" style="height:${h}px"></div>
           <div class="chart-bar-label">${d.date}</div>
         </div>`;
