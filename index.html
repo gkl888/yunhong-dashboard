@@ -296,7 +296,8 @@ function showCelebration(deal) {
   }, 4000);
 }
 
-function formatMoney(n, showWan = false) {
+function formatMoney(n, showWan = false, round = false) {
+  if (round) n = Math.round(n);
   if (showWan && n >= 10000) {
     return '¥' + (n / 10000).toFixed(2) + '万';
   }
@@ -359,7 +360,7 @@ function renderData(data) {
       const h = Math.round((d.amount / maxAmt) * 220);
       chartEl.innerHTML += `
         <div class="chart-bar-wrap">
-          <div class="chart-bar-value">${formatMoney(d.amount)}</div>
+          <div class="chart-bar-value">${formatMoney(d.amount, false, true)}</div>
           <div class="chart-bar" style="height:${h}px"></div>
           <div class="chart-bar-label">${d.date}</div>
         </div>`;
