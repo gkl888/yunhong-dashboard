@@ -338,29 +338,41 @@ function renderData(data) {
   // Chart
   const chartEl = document.getElementById('chartBars');
   chartEl.innerHTML = '';
-  if (!data.dailyStats || data.dailyStats.length === 0) {
-    chartEl.innerHTML = '<div class="chart-empty">暂无数据</div>';
-  } else {
-    // 按日期升序排列（早→晚），日期格式 M/D
-    const sorted = [...data.dailyStats].sort((a,b) => {
-      const [ma, da] = a.date.split('/').map(Number);
-      const [mb, db] = b.date.split('/').map(Number);
-      if (ma !== mb) return ma - mb;
-      return da - db;
-    });
-    // 只取最近7天
-    const recent7 = sorted.slice(-7);
-    const maxAmt = Math.max(1, ...recent7.map(d => d.amount));
-    recent7.forEach(d => {
-      const h = Math.round((d.amount / maxAmt) * 220);
-      chartEl.innerHTML += `
-        <div class="chart-bar-wrap">
-          <div class="chart-bar-value">${formatMoney(d.amount)}</div>
-          <div class="chart-bar" style="height:${h}px"></div>
-          <div class="chart-bar-label">${d.date}</div>
-        </div>`;
-    });
+  // 按实际时间轴显示最近7天（如今天是21日，显示15-21）
+  const now = new Date();
+  const thisMonth = now.getMonth() + 1;
+  const today = now.getDate();
+  
+  // 生成最近7天的日期标签 (M/D格式)
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(today - i);
+    last7Days.push(`${d.getMonth() + 1}/${d.getDate()}`);
   }
+  
+  // 从 dailyStats 中查找对应日期的金额
+  const statsMap = {};
+  if (data.dailyStats) {
+    data.dailyStats.forEach(d => statsMap[d.date] = d.amount);
+  }
+  
+  // 构建最近7天数据（无数据的天显示0）
+  const recent7 = last7Days.map(date => ({
+    date,
+    amount: statsMap[date] || 0
+  }));
+  
+  const maxAmt = Math.max(1, ...recent7.map(d => d.amount));
+  recent7.forEach(d => {
+    const h = Math.round((d.amount / maxAmt) * 220);
+    chartEl.innerHTML += `
+      <div class="chart-bar-wrap">
+        <div class="chart-bar-value">${formatMoney(d.amount)}</div>
+        <div class="chart-bar" style="height:${h}px"></div>
+        <div class="chart-bar-label">${d.date}</div>
+      </div>`;
+  });
   
   // Deals
   const dList = document.getElementById('dealList');
