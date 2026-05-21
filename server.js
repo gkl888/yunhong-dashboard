@@ -24,9 +24,24 @@ const mimeTypes = {
   '.wav': 'audio/wav'
 };
 
-// 从 Supabase 读取数据
-async function readData() {
+// 解析时间字符串中的年月，返回 'YYYY-MM' 格式
+function parseYearMonth(timeStr) {
+  if (!timeStr) return null;
+  const dt = new Date(timeStr.replace(/\//g, '-'));
+  if (isNaN(dt.getTime())) return null;
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+}
+
+// 获取当前月份 'YYYY-MM'
+function getCurrentMonth() {
+  const now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+}
+
+// 从 Supabase 读取数据（按月过滤）
+async function readData(month) {
   try {
+    const targetMonth = month || getCurrentMonth();
     const [dealsRes, groupsRes] = await Promise.all([
       supabase.from('deals').select('*').order('created_at', { ascending: false }),
       supabase.from('groups').select('*')
@@ -35,14 +50,17 @@ async function readData() {
     if (dealsRes.error) console.error('Supabase deals error:', dealsRes.error);
     if (groupsRes.error) console.error('Supabase groups error:', groupsRes.error);
     
-    // 计算统计数据
-    const deals = (dealsRes.data || []).map(d => ({
+    // 所有成单数据
+    const allDeals = (dealsRes.data || []).map(d => ({
       id: d.id,
       time: d.time,
       groupName: d.group_name,
       salesperson: d.salesperson,
       amount: d.amount
     }));
+    
+    // 只保留当月成单
+    const deals = allDeals.filter(d => parseYearMonth(d.time) === targetMonth);
     
     const groups = (groupsRes.data || []).map(g => ({
       name: g.name,
@@ -51,7 +69,7 @@ async function readData() {
       completionRate: 0
     }));
     
-    // 计算各小组金额和完成率
+    // 计算各小组当月金额和完成率
     deals.forEach(deal => {
       const group = groups.find(g => g.name === deal.groupName);
       if (group) group.amount += deal.amount;
@@ -61,12 +79,12 @@ async function readData() {
       g.completionRate = Math.round((g.amount / g.target) * 100);
     });
     
-    // 统计
+    // 统计（当月）
     const totalAmount = deals.reduce((s, d) => s + d.amount, 0);
     const totalDeals = deals.length;
     const avgDealSize = totalDeals > 0 ? Math.round(totalAmount / totalDeals) : 0;
     
-    // 每日统计
+    // 每日统计（当月）
     const dailyMap = {};
     deals.forEach(d => {
       const dt = new Date(d.time.replace(/\//g, '-'));
@@ -77,12 +95,11 @@ async function readData() {
     });
     const dailyStats = Object.keys(dailyMap).sort().map(ds => ({ date: ds, amount: dailyMap[ds] })).slice(-7);
     
-    return { deals, groups, stats: { totalAmount, totalDeals, avgDealSize }, dailyStats };
+    return { deals, groups, stats: { totalAmount, totalDeals, avgDealSize }, dailyStats, month: targetMonth };
   } catch(e) {
     console.error('readData error:', e);
-    // fallback to local file
     try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-    catch(e2) { return { deals: [], groups: [], stats: { totalAmount:0, totalDeals:0, avgDealSize:0 }, dailyStats:[] }; }
+    catch(e2) { return { deals: [], groups: [], stats: { totalAmount:0, totalDeals:0, avgDealSize:0 }, dailyStats:[], month: month || getCurrentMonth() }; }
   }
 }
 
@@ -121,10 +138,11 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, 'http://localhost');
 
-  // API: GET /api/data
+  // API: GET /api/data?month=2026-05
   if (req.method === 'GET' && url.pathname === '/api/data') {
     try {
-      const data = await readData();
+      const month = url.searchParams.get('month') || '';
+      const data = await readData(month || undefined);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(data));
     } catch(e) {

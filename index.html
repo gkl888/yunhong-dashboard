@@ -100,7 +100,7 @@ body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;over
 
 <!-- 顶部 -->
 <div class="header">
-<h1>🏆 采购业绩实时看板</h1>
+<h1>🏆 采购业绩实时看板 <span id="monthLabel" style="font-size:0.5em;color:#aaa"></span></h1>
 <div class="header-right">
 <span id="wsStatus" class="ws-status disconnected">未连接</span>
 <a href="input.html" class="nav-btn">📝 成单录入</a>
@@ -279,6 +279,12 @@ function formatMoney(n, showWan = false) {
 }
 
 function renderData(data) {
+  // 显示当前月份
+  if (data.month) {
+    const parts = data.month.split('-');
+    document.getElementById('monthLabel').textContent = parts[0] + '年' + parseInt(parts[1]) + '月';
+  }
+  
   // Stats - 累计业绩显示万单位，保留2位小数
   document.getElementById('totalAmount').textContent = formatMoney(data.stats.totalAmount, true);
   document.getElementById('totalDeals').textContent = data.stats.totalDeals;
