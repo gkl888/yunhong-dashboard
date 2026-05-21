@@ -341,8 +341,12 @@ function renderData(data) {
   if (!data.dailyStats || data.dailyStats.length === 0) {
     chartEl.innerHTML = '<div class="chart-empty">暂无数据</div>';
   } else {
-    const maxAmt = Math.max(1, ...data.dailyStats.map(d => d.amount));
-    data.dailyStats.forEach(d => {
+    // 按日期升序排列（早→晚）
+    const sorted = [...data.dailyStats].sort((a,b) => new Date(a.date) - new Date(b.date));
+    // 只取最近7天
+    const recent7 = sorted.slice(-7);
+    const maxAmt = Math.max(1, ...recent7.map(d => d.amount));
+    recent7.forEach(d => {
       const h = Math.round((d.amount / maxAmt) * 220);
       chartEl.innerHTML += `
         <div class="chart-bar-wrap">
