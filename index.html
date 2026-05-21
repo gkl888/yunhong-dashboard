@@ -341,8 +341,13 @@ function renderData(data) {
   if (!data.dailyStats || data.dailyStats.length === 0) {
     chartEl.innerHTML = '<div class="chart-empty">暂无数据</div>';
   } else {
-    // 按日期升序排列（早→晚）
-    const sorted = [...data.dailyStats].sort((a,b) => new Date(a.date) - new Date(b.date));
+    // 按日期升序排列（早→晚），日期格式 M/D
+    const sorted = [...data.dailyStats].sort((a,b) => {
+      const [ma, da] = a.date.split('/').map(Number);
+      const [mb, db] = b.date.split('/').map(Number);
+      if (ma !== mb) return ma - mb;
+      return da - db;
+    });
     // 只取最近7天
     const recent7 = sorted.slice(-7);
     const maxAmt = Math.max(1, ...recent7.map(d => d.amount));
