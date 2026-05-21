@@ -97,7 +97,18 @@ async function readData(month) {
         dailyMap[ds] = (dailyMap[ds] || 0) + d.amount;
       }
     });
-    const dailyStats = Object.keys(dailyMap).sort().map(ds => ({ date: ds, amount: dailyMap[ds] })).slice(-7);
+    // 按自然日生成最近7个工作日（跳过周日），无成交显示0
+    const today = new Date();
+    const days = [];
+    for (let i = 0; i < 14 && days.length < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      if (d.getDay() !== 0) {
+        days.push({ date: (d.getMonth() + 1) + '/' + d.getDate(), ts: d.getTime() });
+      }
+    }
+    days.reverse();
+    const dailyStats = days.map(item => ({ date: item.date, amount: dailyMap[item.date] || 0 }));
     
     // 个人业绩排名（按销售员汇总）
     const personMap = {};
