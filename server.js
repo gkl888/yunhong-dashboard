@@ -95,7 +95,20 @@ async function readData(month) {
     });
     const dailyStats = Object.keys(dailyMap).sort().map(ds => ({ date: ds, amount: dailyMap[ds] })).slice(-7);
     
-    return { deals, groups, stats: { totalAmount, totalDeals, avgDealSize }, dailyStats, month: targetMonth };
+    // 个人业绩排名（按销售员汇总）
+    const personMap = {};
+    deals.forEach(d => {
+      if (!personMap[d.salesperson]) personMap[d.salesperson] = 0;
+      personMap[d.salesperson] += d.amount;
+    });
+    const top3 = Object.entries(personMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, amount]) => ({ name, amount }));
+    // 按 2-1-3 顺序排列（领奖台样式：亚军-冠军-季军）
+    const podium = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3;
+    
+    return { deals, groups, stats: { totalAmount, totalDeals, avgDealSize }, dailyStats, month: targetMonth, top3, podium };
   } catch(e) {
     console.error('readData error:', e);
     try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
