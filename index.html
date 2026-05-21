@@ -271,13 +271,16 @@ function showCelebration(deal) {
   }, 4000);
 }
 
-function formatMoney(n) {
+function formatMoney(n, showWan = false) {
+  if (showWan && n >= 10000) {
+    return '¥' + (n / 10000).toFixed(2) + '万';
+  }
   return '¥' + n.toLocaleString();
 }
 
 function renderData(data) {
-  // Stats
-  document.getElementById('totalAmount').textContent = formatMoney(data.stats.totalAmount);
+  // Stats - 累计业绩显示万单位，保留2位小数
+  document.getElementById('totalAmount').textContent = formatMoney(data.stats.totalAmount, true);
   document.getElementById('totalDeals').textContent = data.stats.totalDeals;
   document.getElementById('avgDealSize').textContent = formatMoney(data.stats.avgDealSize);
   
