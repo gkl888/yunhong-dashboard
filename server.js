@@ -10,7 +10,11 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 // Supabase 配置
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://daqmnndkovghgpsnnwiv.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_ZevdbdmROJ4osSaldZFI-g_uU9x_H6V';
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  realtime: {
+    transport: WebSocket
+  }
+});
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
