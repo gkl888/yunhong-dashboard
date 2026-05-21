@@ -2,9 +2,15 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
+const { createClient } = require('@supabase/supabase-js');
 
 const PORT = process.env.PORT || 30000;
 const DATA_FILE = path.join(__dirname, 'data.json');
+
+// Supabase 配置
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://daqmnndkovghgpsnnwiv.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_ZevdbdmROJ4osSaldZFI-g_uU9x_H6V';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -18,12 +24,66 @@ const mimeTypes = {
   '.wav': 'audio/wav'
 };
 
-function readData() {
-  return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-}
-
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+// 从 Supabase 读取数据
+async function readData() {
+  try {
+    const [dealsRes, groupsRes] = await Promise.all([
+      supabase.from('deals').select('*').order('created_at', { ascending: false }),
+      supabase.from('groups').select('*')
+    ]);
+    
+    if (dealsRes.error) console.error('Supabase deals error:', dealsRes.error);
+    if (groupsRes.error) console.error('Supabase groups error:', groupsRes.error);
+    
+    // 计算统计数据
+    const deals = (dealsRes.data || []).map(d => ({
+      id: d.id,
+      time: d.time,
+      groupName: d.group_name,
+      salesperson: d.salesperson,
+      amount: d.amount
+    }));
+    
+    const groups = (groupsRes.data || []).map(g => ({
+      name: g.name,
+      target: g.target,
+      amount: 0,
+      completionRate: 0
+    }));
+    
+    // 计算各小组金额和完成率
+    deals.forEach(deal => {
+      const group = groups.find(g => g.name === deal.groupName);
+      if (group) group.amount += deal.amount;
+    });
+    
+    groups.forEach(g => {
+      g.completionRate = Math.round((g.amount / g.target) * 100);
+    });
+    
+    // 统计
+    const totalAmount = deals.reduce((s, d) => s + d.amount, 0);
+    const totalDeals = deals.length;
+    const avgDealSize = totalDeals > 0 ? Math.round(totalAmount / totalDeals) : 0;
+    
+    // 每日统计
+    const dailyMap = {};
+    deals.forEach(d => {
+      const dt = new Date(d.time.replace(/\//g, '-'));
+      if (!isNaN(dt.getTime())) {
+        const ds = (dt.getMonth() + 1) + '/' + dt.getDate();
+        dailyMap[ds] = (dailyMap[ds] || 0) + d.amount;
+      }
+    });
+    const dailyStats = Object.keys(dailyMap).sort().map(ds => ({ date: ds, amount: dailyMap[ds] })).slice(-7);
+    
+    return { deals, groups, stats: { totalAmount, totalDeals, avgDealSize }, dailyStats };
+  } catch(e) {
+    console.error('readData error:', e);
+    // fallback to local file
+    try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
+    catch(e2) { return { deals: [], groups: [], stats: { totalAmount:0, totalDeals:0, avgDealSize:0 }, dailyStats:[] }; }
+  }
 }
 
 function getRequestBody(req) {
@@ -64,7 +124,7 @@ const server = http.createServer(async (req, res) => {
   // API: GET /api/data
   if (req.method === 'GET' && url.pathname === '/api/data') {
     try {
-      const data = readData();
+      const data = await readData();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(data));
     } catch(e) {
@@ -84,48 +144,29 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      const data = readData();
-      const newId = data.deals.length > 0 ? Math.max(...data.deals.map(d => d.id)) + 1 : 1;
-      
-      const newDeal = {
-        id: newId,
+      // 写入 Supabase
+      const { data: inserted, error } = await supabase.from('deals').insert({
         time: dealData.time || new Date().toLocaleString('zh-CN', { hour12: false }),
-        groupName: dealData.groupName,
+        group_name: dealData.groupName,
         salesperson: dealData.salesperson,
         amount: dealData.amount
+      }).select().single();
+      
+      if (error) {
+        console.error('Supabase insert error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '数据库写入失败: ' + error.message }));
+        return;
+      }
+      
+      const newDeal = {
+        id: inserted.id,
+        time: inserted.time,
+        groupName: inserted.group_name,
+        salesperson: inserted.salesperson,
+        amount: inserted.amount
       };
       
-      data.deals.unshift(newDeal);
-      
-      // Update stats
-      data.stats.totalAmount += dealData.amount;
-      data.stats.totalDeals += 1;
-      data.stats.avgDealSize = Math.round(data.stats.totalAmount / data.stats.totalDeals);
-      
-      // Update group
-      const group = data.groups.find(g => g.name === dealData.groupName);
-      if (group) {
-        group.amount += dealData.amount;
-        const target = group.target || 500000;
-        group.completionRate = Math.round((group.amount / target) * 100);
-      }
-      
-      // Update daily stats
-      const dealTime = dealData.time ? new Date(dealData.time.replace(/\//g, '-')) : new Date();
-      if (!isNaN(dealTime.getTime())) {
-        const todayStr = (dealTime.getMonth() + 1) + '/' + dealTime.getDate();
-        let todayStat = data.dailyStats.find(d => d.date === todayStr);
-        if (todayStat) {
-          todayStat.amount += dealData.amount;
-        } else {
-          data.dailyStats.push({ date: todayStr, amount: dealData.amount });
-        }
-        if (data.dailyStats.length > 7) data.dailyStats = data.dailyStats.slice(-7);
-      }
-      
-      writeData(data);
-      
-      // Broadcast to WebSocket clients
       broadcast({ type: 'new_deal', deal: newDeal });
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -150,41 +191,29 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      const data = readData();
-      const deal = data.deals.find(d => d.id === id);
-      if (!deal) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '成单不存在' }));
+      // 构建 Supabase 更新数据
+      const updateFields = {};
+      if (updateData.groupName) updateFields.group_name = updateData.groupName;
+      if (updateData.salesperson) updateFields.salesperson = updateData.salesperson;
+      if (updateData.amount) updateFields.amount = updateData.amount;
+      if (updateData.time) updateFields.time = updateData.time;
+      
+      const { data: updated, error } = await supabase.from('deals').update(updateFields).eq('id', id).select().single();
+      if (error) {
+        console.error('Supabase update error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '更新失败: ' + error.message }));
         return;
       }
       
-      // If changing group or amount, recalculate
-      const oldGroup = deal.groupName;
-      const oldAmount = deal.amount;
+      const deal = {
+        id: updated.id,
+        time: updated.time,
+        groupName: updated.group_name,
+        salesperson: updated.salesperson,
+        amount: updated.amount
+      };
       
-      if (updateData.groupName) deal.groupName = updateData.groupName;
-      if (updateData.salesperson) deal.salesperson = updateData.salesperson;
-      if (updateData.amount) deal.amount = updateData.amount;
-      
-      // Recalculate group amounts
-      if (oldGroup !== deal.groupName || oldAmount !== deal.amount) {
-        // Remove from old group
-        const oldG = data.groups.find(g => g.name === oldGroup);
-        if (oldG) {
-          oldG.amount -= oldAmount;
-          const target = oldG.target || 500000;
-          oldG.completionRate = Math.round((oldG.amount / target) * 100);
-        }
-        // Add to new group
-        const newG = data.groups.find(g => g.name === deal.groupName);
-        if (newG) {
-          newG.amount += deal.amount;
-          const target = newG.target || 500000;
-          newG.completionRate = Math.round((newG.amount / target) * 100);
-        }
-      }
-      
-      writeData(data);
       broadcast({ type: 'update_deal', deal: deal });
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -201,52 +230,16 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'DELETE' && url.pathname.startsWith('/api/deal/')) {
     try {
       const id = parseInt(url.pathname.split('/').pop());
-      const data = readData();
-      const dealIndex = data.deals.findIndex(d => d.id === id);
       
-      if (dealIndex === -1) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '成单不存在' }));
+      // 从 Supabase 删除
+      const { error } = await supabase.from('deals').delete().eq('id', id);
+      if (error) {
+        console.error('Supabase delete error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '删除失败: ' + error.message }));
         return;
       }
       
-      const deal = data.deals[dealIndex];
-      data.deals.splice(dealIndex, 1);
-      
-      // Update stats
-      data.stats.totalAmount -= deal.amount;
-      data.stats.totalDeals -= 1;
-      if (data.stats.totalDeals > 0) {
-        data.stats.avgDealSize = Math.round(data.stats.totalAmount / data.stats.totalDeals);
-      } else {
-        data.stats.avgDealSize = 0;
-      }
-      
-      // Update group
-      const group = data.groups.find(g => g.name === deal.groupName);
-      if (group) {
-        group.amount -= deal.amount;
-        const target = group.target || 500000;
-        group.completionRate = Math.round((group.amount / target) * 100);
-      }
-      
-      // Update dailyStats: recalculate from remaining deals
-      data.dailyStats = [];
-      const dateMap = {};
-      data.deals.forEach(d => {
-        const dt = new Date(d.time);
-        if (!isNaN(dt.getTime())) {
-          const ds = (dt.getMonth() + 1) + '/' + dt.getDate();
-          dateMap[ds] = (dateMap[ds] || 0) + d.amount;
-        }
-      });
-      Object.keys(dateMap).forEach(ds => {
-        data.dailyStats.push({ date: ds, amount: dateMap[ds] });
-      });
-      data.dailyStats.sort((a,b) => a.date.localeCompare(b.date));
-      if (data.dailyStats.length > 7) data.dailyStats = data.dailyStats.slice(-7);
-      
-      writeData(data);
       broadcast({ type: 'delete_deal', id: id });
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -271,23 +264,18 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      const data = readData();
-      const group = data.groups.find(g => g.name === groupName);
-      
-      if (!group) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '小组不存在' }));
+      const { error } = await supabase.from('groups').update({ target: body.target }).eq('name', groupName);
+      if (error) {
+        console.error('Supabase update target error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '更新目标失败: ' + error.message }));
         return;
       }
       
-      group.target = body.target;
-      group.completionRate = Math.round((group.amount / group.target) * 100);
-      
-      writeData(data);
-      broadcast({ type: 'update_target', group: group });
+      broadcast({ type: 'update_target', group: { name: groupName, target: body.target } });
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, group: group }));
+      res.end(JSON.stringify({ success: true, group: { name: groupName, target: body.target } }));
     } catch(e) {
       console.error('Error setting target:', e);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -300,7 +288,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/report') {
     try {
       const month = url.searchParams.get('month') || '';
-      const data = readData();
+      const data = await readData();
       
       // 筛选指定月份的成单
       let filtered = data.deals;
