@@ -57,7 +57,7 @@ body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;over
 /* 趋势图 */
 .chart-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;border:1px solid rgba(102,126,234,.3)}
 .chart-panel h2{font-size:1.2em;margin-bottom:15px;color:#00d4ff;text-align:center}
-.chart-bars{display:flex;align-items:flex-end;justify-content:space-around;height:160px;padding-top:60px;min-height:0}
+.chart-bars{display:flex;align-items:flex-end;justify-content:space-around;height:200px;padding-top:70px;min-height:0}
 .chart-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;max-width:80px;min-width:30px}
 .chart-bar{width:70%;max-width:50px;min-width:20px;background:linear-gradient(180deg,#667eea,#764ba2);border-radius:5px 5px 0 0;transition:height .5s;min-height:3px}
 .chart-bar-label{margin-top:8px;font-size:.8em;color:#aaa;white-space:nowrap}
@@ -84,17 +84,17 @@ body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;over
 @keyframes celebBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 
 /* 中间列：趋势图 + 个人业绩前三垂直叠放 */
-.center-col{display:flex;flex-direction:column;gap:20px}
+.center-col{display:flex;flex-direction:column;gap:16px}
 /* 领奖台（内嵌在中间列） */
-.podium-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:15px;border:1px solid rgba(102,126,234,.3)}
-.podium-panel h2{font-size:1.1em;margin-bottom:12px;color:#ff6b9d;text-align:center}
-.podium-wrap{display:flex;align-items:flex-end;justify-content:center;height:160px;padding-bottom:8px;gap:10px}
-.podium-col{display:flex;flex-direction:column;align-items:center;flex:1;max-width:120px}
-.podium-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2em;margin-bottom:6px;border:3px solid}
+.podium-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:18px 20px;border:1px solid rgba(102,126,234,.3);flex:1}
+.podium-panel h2{font-size:1.15em;margin-bottom:14px;color:#ff6b9d;text-align:center}
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;height:200px;padding-bottom:10px;gap:16px}
+.podium-col{display:flex;flex-direction:column;align-items:center;flex:1;max-width:130px}
+.podium-avatar{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.35em;margin-bottom:8px;border:3px solid}
 .podium-avatar.gold{border-color:#ffd700;background:rgba(255,215,0,.15);box-shadow:0 0 20px rgba(255,215,0,.3)}
 .podium-avatar.silver{border-color:#c0c0c0;background:rgba(192,192,192,.15);box-shadow:0 0 15px rgba(192,192,192,.2)}
 .podium-avatar.bronze{border-color:#cd7f32;background:rgba(205,127,50,.15);box-shadow:0 0 15px rgba(205,127,50,.2)}
-.podium-name{font-weight:700;font-size:1em;margin-bottom:8px;white-space:nowrap}
+.podium-name{font-weight:700;font-size:1.05em;margin-bottom:8px;white-space:nowrap}
 .podium-bar{width:100%;border-radius:8px 8px 0 0;transition:height .6s;min-height:10px}
 .podium-bar.gold{background:linear-gradient(180deg,#ffd700,#b8860b)}
 .podium-bar.silver{background:linear-gradient(180deg,#e8e8e8,#a0a0a0)}
