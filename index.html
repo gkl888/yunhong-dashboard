@@ -59,7 +59,7 @@ body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;over
 .chart-panel h2{font-size:1.4em;margin-bottom:15px;color:#fff;text-align:center;width:100%}
 .chart-bars{display:flex;align-items:flex-end;justify-content:center;height:240px;padding-top:80px;min-height:0;flex:1}
 .chart-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;max-width:80px;min-width:30px}
-.chart-bar{width:60%;max-width:48px;min-width:18px;background:linear-gradient(180deg,#667eea,#764ba2);border-radius:5px 5px 0 0;transition:height .5s;min-height:3px}
+.chart-bar{width:80%;max-width:65px;min-width:18px;background:linear-gradient(180deg,#667eea,#764ba2);border-radius:5px 5px 0 0;transition:height .5s;min-height:3px}
 .chart-bar-label{margin-top:8px;font-size:.8em;color:#aaa;white-space:nowrap}
 .chart-bar-value{margin-bottom:5px;font-size:.72em;color:#ffd700;white-space:nowrap}
 .chart-empty{text-align:center;color:#555;font-size:1em;padding-top:80px;width:100%}
@@ -338,41 +338,33 @@ function renderData(data) {
   // Chart
   const chartEl = document.getElementById('chartBars');
   chartEl.innerHTML = '';
-  // 按实际时间轴显示最近7天（如今天是21日，显示15-21）
-  const now = new Date();
-  const thisMonth = now.getMonth() + 1;
-  const today = now.getDate();
-  
-  // 生成最近7天的日期标签 (M/D格式)
-  const last7Days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(today - i);
-    last7Days.push(`${d.getMonth() + 1}/${d.getDate()}`);
+  // 从 dailyStats 中取最近7天有数据的记录
+  let recent7 = [];
+  if (data.dailyStats && data.dailyStats.length > 0) {
+    // 按日期升序排列（早→晚），日期格式 M/D
+    const sorted = [...data.dailyStats].sort((a, b) => {
+      const [ma, da] = a.date.split('/').map(Number);
+      const [mb, db] = b.date.split('/').map(Number);
+      if (ma !== mb) return ma - mb;
+      return da - db;
+    });
+    recent7 = sorted.slice(-7);
   }
   
-  // 从 dailyStats 中查找对应日期的金额
-  const statsMap = {};
-  if (data.dailyStats) {
-    data.dailyStats.forEach(d => statsMap[d.date] = d.amount);
+  if (recent7.length === 0) {
+    chartEl.innerHTML = '<div class="chart-empty">暂无数据</div>';
+  } else {
+    const maxAmt = Math.max(1, ...recent7.map(d => d.amount));
+    recent7.forEach(d => {
+      const h = Math.round((d.amount / maxAmt) * 220);
+      chartEl.innerHTML += `
+        <div class="chart-bar-wrap">
+          <div class="chart-bar-value">${formatMoney(d.amount)}</div>
+          <div class="chart-bar" style="height:${h}px"></div>
+          <div class="chart-bar-label">${d.date}</div>
+        </div>`;
+    });
   }
-  
-  // 构建最近7天数据（无数据的天显示0）
-  const recent7 = last7Days.map(date => ({
-    date,
-    amount: statsMap[date] || 0
-  }));
-  
-  const maxAmt = Math.max(1, ...recent7.map(d => d.amount));
-  recent7.forEach(d => {
-    const h = Math.round((d.amount / maxAmt) * 220);
-    chartEl.innerHTML += `
-      <div class="chart-bar-wrap">
-        <div class="chart-bar-value">${formatMoney(d.amount)}</div>
-        <div class="chart-bar" style="height:${h}px"></div>
-        <div class="chart-bar-label">${d.date}</div>
-      </div>`;
-  });
   
   // Deals
   const dList = document.getElementById('dealList');
