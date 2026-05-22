@@ -193,7 +193,7 @@ const server = http.createServer(async (req, res) => {
       
       // 写入 Supabase
       const { data: inserted, error } = await supabase.from('deals').insert({
-        time: dealData.time || new Date().toLocaleString('zh-CN', { hour12: false }),
+        time: dealData.time || (function(){ const d=new Date(); const pad=n=>String(n).padStart(2,'0'); return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); })(),
         group_name: dealData.groupName,
         salesperson: dealData.salesperson,
         amount: dealData.amount
