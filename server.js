@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
@@ -327,6 +328,32 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: '服务器错误' }));
     }
+    return;
+  }
+
+  // API: GET /api/tts?text=xxx — 文字转语音（Google Translate TTS，Render服务器可访问）
+  if (req.method === 'GET' && url.pathname === '/api/tts') {
+    const text = url.searchParams.get('text');
+    if (!text) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'text参数不能为空' }));
+      return;
+    }
+    const encodedText = encodeURIComponent(text);
+    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=zh-CN&client=tw-ob`;
+    https.get(ttsUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (ttsRes) => {
+      if (ttsRes.statusCode !== 200) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'TTS服务不可用' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'audio/mpeg' });
+      ttsRes.pipe(res);
+    }).on('error', (err) => {
+      console.error('TTS请求失败:', err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'TTS服务错误' }));
+    });
     return;
   }
 
