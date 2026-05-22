@@ -220,9 +220,23 @@ function playCelebrationSound() {
 }
 
 function speak(text, times = 1) {
-  // 优先尝试服务器端 TTS（Render后端 → Google Translate TTS → 浏览器播放）
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000); // 10秒超时
+  const timer = setTimeout(() => controller.abort(), 10000);
+
+  function playViaAudio(blob, timesLeft) {
+    const url = URL.createObjectURL(blob);
+    let count = 0;
+    function play() {
+      if (count >= timesLeft) { URL.revokeObjectURL(url); return; }
+      count++;
+      const a = new Audio(url);
+      a.volume = 0.9;
+      a.onended = play;
+      a.onerror = () => { URL.revokeObjectURL(url); };
+      a.play().catch(() => {});
+    }
+    play();
+  }
 
   fetch('/api/tts?text=' + encodeURIComponent(text), { signal: controller.signal })
     .then(r => {
@@ -231,23 +245,31 @@ function speak(text, times = 1) {
       return r.blob();
     })
     .then(blob => {
-      const url = URL.createObjectURL(blob);
-      let count = 0;
-      function play() {
-        if (count >= times) { URL.revokeObjectURL(url); return; }
-        count++;
-        const a = new Audio(url);
-        a.volume = 0.9;
-        a.onended = play;
-        a.onerror = () => { URL.revokeObjectURL(url); };
-        a.play().catch(() => {});
+      // 优先用 AudioContext 播放（会议一体机已通过遮罩点击解锁，无自动播放限制）
+      if (audioCtx && audioCtx.state === 'running') {
+        let count = 0;
+        function playWithCtx() {
+          if (count >= times) return;
+          count++;
+          blob.arrayBuffer()
+            .then(ab => audioCtx.decodeAudioData(ab))
+            .then(buf => {
+              const src = audioCtx.createBufferSource();
+              src.buffer = buf;
+              src.connect(audioCtx.destination);
+              src.onended = playWithCtx;
+              src.start();
+            })
+            .catch(() => { playViaAudio(blob, times - count + 1); });
+        }
+        playWithCtx();
+      } else {
+        playViaAudio(blob, times);
       }
-      play();
     })
     .catch(err => {
       clearTimeout(timer);
       console.warn('TTS fetch failed:', err.message);
-      // Fallback：使用浏览器 speechSynthesis
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
       let count = 0;
