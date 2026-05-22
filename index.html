@@ -221,8 +221,12 @@ function playCelebrationSound() {
 
 function speak(text, times = 1) {
   // 优先尝试服务器端 TTS（Render后端 → Google Translate TTS → 浏览器播放）
-  fetch('/api/tts?text=' + encodeURIComponent(text))
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+  fetch('/api/tts?text=' + encodeURIComponent(text), { signal: controller.signal })
     .then(r => {
+      clearTimeout(timer);
       if (!r.ok) throw new Error('tts failed');
       return r.blob();
     })
@@ -236,11 +240,13 @@ function speak(text, times = 1) {
         a.volume = 0.9;
         a.onended = play;
         a.onerror = () => { URL.revokeObjectURL(url); };
-        a.play();
+        a.play().catch(() => {});
       }
       play();
     })
-    .catch(() => {
+    .catch(err => {
+      clearTimeout(timer);
+      console.warn('TTS fetch failed:', err.message);
       // Fallback：使用浏览器 speechSynthesis
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
