@@ -316,10 +316,8 @@ function playCheerSound() {
 }
 
 function showCelebration(deal) {
-  // 1. 清脆敲铃声 4秒
-  playBellAudio().then(() => {
-    speak('恭喜！' + deal.groupName + '的' + deal.salesperson + '成单' + deal.amount + '元！', 2);
-  });
+  // 直接播报，无敲钟声
+  speak('恭喜！' + deal.groupName + '的' + deal.salesperson + '成单' + deal.amount + '元！', 2);
   
   // Popup
   document.getElementById('celebGroup').textContent = deal.groupName;
