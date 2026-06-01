@@ -361,22 +361,25 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/report') {
     try {
       const month = url.searchParams.get('month') || '';
-      const data = await readData();
+      // 直接从 Supabase 读取全部成单，按月份过滤
+      const [dealsRes, groupsRes] = await Promise.all([
+        supabase.from('deals').select('*').order('created_at', { ascending: false }),
+        supabase.from('groups').select('*')
+      ]);
       
-      // 筛选指定月份的成单
-      let filtered = data.deals;
+      const allDeals = (dealsRes.data || []).map(d => ({
+        id: d.id, time: d.time, groupName: d.group_name, salesperson: d.salesperson, amount: d.amount
+      }));
+      
+      // 按指定月份过滤
+      let filtered = allDeals;
       if (month) {
-        filtered = data.deals.filter(d => {
-          const dt = new Date(d.time.replace(/\//g, '-'));
-          if (isNaN(dt.getTime())) return false;
-          const m = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
-          return m === month;
-        });
+        filtered = allDeals.filter(d => parseYearMonth(d.time) === month);
       }
       
       // 按小组汇总
       const groupReport = {};
-      data.groups.forEach(g => {
+      (groupsRes.data || []).forEach(g => {
         groupReport[g.name] = { name: g.name, target: g.target || 500000, amount: 0, dealCount: 0, completionRate: 0 };
       });
       
