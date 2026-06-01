@@ -90,7 +90,7 @@ tr:hover td { background: #152a45; }
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>排名</th><th>小组</th><th>目标</th><th>完成金额</th><th>成单数</th><th>完成率</th></tr>
+        <tr><th>排名</th><th>小组</th><th>目标</th><th>完成金额</th><th>成单数</th><th>完成率</th><th>达标人数</th><th>达标率</th></tr>
       </thead>
       <tbody id="groupBody"></tbody>
     </table>
@@ -188,7 +188,9 @@ function renderGroups(groups) {
       <td>
         <span class="progress-wrap"><span class="progress-bar" style="width:${Math.min(g.completionRate,100)}%"></span></span>
         <span class="rate ${rateClass}">${g.completionRate}%</span>
-      </td>`;
+      </td>
+      <td>${g.qualifiedPersons || 0}/${g.totalPersons || 0}</td>
+      <td><span class="rate ${(g.qualificationRate||0) >= 80 ? 'rate-good' : (g.qualificationRate||0) >= 50 ? 'rate-warn' : 'rate-bad'}">${g.qualificationRate || 0}%</span></td>`;
     tbody.appendChild(tr);
   });
   

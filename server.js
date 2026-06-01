@@ -395,6 +395,25 @@ const server = http.createServer(async (req, res) => {
         g.completionRate = Math.round((g.amount / g.target) * 100);
       });
       
+      // 按小组+业务员汇总（算达标人数）
+      const THRESHOLD = 100000; // 10万达标
+      const personGroupMap = {}; // groupName -> { personName: totalAmount }
+      filtered.forEach(d => {
+        if (!personGroupMap[d.groupName]) personGroupMap[d.groupName] = {};
+        if (!personGroupMap[d.groupName][d.salesperson]) personGroupMap[d.groupName][d.salesperson] = 0;
+        personGroupMap[d.groupName][d.salesperson] += d.amount;
+      });
+      
+      // 计算每个组的达标人数和达标率
+      Object.keys(groupReport).forEach(name => {
+        const persons = personGroupMap[name] || {};
+        const totalPersons = Object.keys(persons).length;
+        const qualifiedPersons = Object.values(persons).filter(a => a >= THRESHOLD).length;
+        groupReport[name].totalPersons = totalPersons;
+        groupReport[name].qualifiedPersons = qualifiedPersons;
+        groupReport[name].qualificationRate = totalPersons > 0 ? Math.round((qualifiedPersons / totalPersons) * 100) : 0;
+      });
+      
       // 按日期汇总（每日）
       const dailyMap = {};
       filtered.forEach(d => {
