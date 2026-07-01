@@ -392,14 +392,12 @@ function renderData(data) {
   });
   const gList = document.getElementById('groupList');
   gList.innerHTML = '';
-  const TASK = 100000; // 达标任务10万
   sorted.forEach((g, i) => {
     const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
     const barColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
     const rateColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
-    // 达标任务：计算需达标的业务员数
-    const taskDone = Math.floor(g.amount / TASK); // 已完成几份达标任务
-    const taskStatus = taskDone > 0 ? 'done' : 'pending';
+    // 达标人数：业绩>=10万的业务员数
+    const qualified = g.qualifiedCount || 0;
     
     gList.innerHTML += `
       <div class="group-item">
@@ -419,8 +417,8 @@ function renderData(data) {
           <span><span class="group-stat-label">目标:</span> ${formatMoney(g.target||500000, true)}</span>
         </div>
         <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
-        <div class="group-task ${taskStatus}">
-          🎯 达标任务: <span class="task-count">${taskDone}</span> 份（每份10万）
+        <div class="group-task ${qualified > 0 ? 'done' : 'pending'}">
+          🎯 达标人数: <span class="task-count">${qualified}</span> 人
         </div>
       </div>`;
   });

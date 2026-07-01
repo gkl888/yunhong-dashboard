@@ -86,6 +86,18 @@ async function readData(month) {
       g.completionRate = Math.round((g.amount / g.target) * 100);
     });
     
+    // 计算每组达标人数（业绩>=10万的业务员）
+    const personByGroup = {};
+    deals.forEach(d => {
+      const key = d.groupName + '|' + d.salesperson;
+      if (!personByGroup[key]) personByGroup[key] = { group: d.groupName, salesperson: d.salesperson, amount: 0 };
+      personByGroup[key].amount += d.amount;
+    });
+    groups.forEach(g => {
+      const members = Object.values(personByGroup).filter(p => p.group === g.name);
+      g.qualifiedCount = members.filter(p => p.amount >= 100000).length;
+    });
+    
     // 统计（当月）
     const totalAmount = deals.reduce((s, d) => s + d.amount, 0);
     const totalDeals = deals.length;
