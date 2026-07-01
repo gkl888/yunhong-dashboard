@@ -385,13 +385,6 @@ function renderData(data) {
     const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
     const barColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
     const rateColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
-    const membersHtml = (g.members || []).map(m => {
-      const qualified = m.amount >= 100000;
-      return `<div class="group-member">
-        <span class="member-name">${m.name}</span>
-        <span><span class="member-amount">${formatMoney(m.amount, true)}</span>${qualified ? '<span class="member-badge">达标</span>' : ''}</span>
-      </div>`;
-    }).join('');
     
     gList.innerHTML += `
       <div class="group-item">
@@ -407,7 +400,6 @@ function renderData(data) {
           <span><span class="group-stat-label">目标:</span> ${formatMoney(g.target||500000, true)}</span>
         </div>
         <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
-        ${g.members && g.members.length > 0 ? `<div class="group-members">${membersHtml}</div>` : ''}
       </div>`;
   });
   

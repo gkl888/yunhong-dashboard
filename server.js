@@ -71,33 +71,13 @@ async function readData(month) {
       name: g.name,
       target: g.target,
       amount: 0,
-      completionRate: 0,
-      members: [] // 小组成员列表
+      completionRate: 0
     }));
-    
-    // 按小组+业务员汇总
-    const memberMap = {};
-    deals.forEach(deal => {
-      const key = deal.groupName + '|' + deal.salesperson;
-      if (!memberMap[key]) memberMap[key] = { groupName: deal.groupName, name: deal.salesperson, amount: 0 };
-      memberMap[key].amount += deal.amount;
-    });
     
     // 计算各小组当月金额和完成率
     deals.forEach(deal => {
       const group = groups.find(g => g.name === deal.groupName);
       if (group) group.amount += deal.amount;
-    });
-    
-    // 把成员数据加入小组
-    Object.values(memberMap).forEach(m => {
-      const group = groups.find(g => g.name === m.groupName);
-      if (group) group.members.push({ name: m.name, amount: m.amount });
-    });
-    
-    // 每个小组按金额排序成员
-    groups.forEach(g => {
-      g.members.sort((a, b) => b.amount - a.amount);
     });
     
     groups.forEach(g => {
