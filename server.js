@@ -72,6 +72,7 @@ async function readData(month) {
       target: g.target,
       leader: g.leader || '',
       deputy: g.deputy || '',
+      manualQualifiedCount: g.manual_qualified_count || 0,
       amount: 0,
       completionRate: 0
     }));
@@ -95,7 +96,7 @@ async function readData(month) {
     });
     groups.forEach(g => {
       const members = Object.values(personByGroup).filter(p => p.group === g.name);
-      g.qualifiedCount = members.filter(p => p.amount >= 100000).length;
+      g.qualifiedCount = members.filter(p => p.amount >= 100000).length + (g.manualQualifiedCount || 0);
     });
     
     // 统计（当月）
@@ -339,6 +340,39 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: true, group: { name: groupName, target: body.target } }));
     } catch(e) {
       console.error('Error setting target:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '服务器错误' }));
+    }
+    return;
+  }
+
+  // API: PUT /api/group/:name/manual-qualified - 设置小组手动达标人数
+  if (req.method === 'PUT' && url.pathname.match(/^\/api\/group\/.+\/manual-qualified$/)) {
+    try {
+      const groupName = decodeURIComponent(url.pathname.split('/')[3]);
+      const body = await getRequestBody(req);
+      
+      if (body === null || body.manualQualifiedCount === undefined) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '缺少达标人数' }));
+        return;
+      }
+      
+      const { error } = await supabase.from('groups').update({ manual_qualified_count: body.manualQualifiedCount }).eq('name', groupName);
+      
+      if (error) {
+        console.error('Supabase update manual_qualified_count error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '更新达标人数失败: ' + error.message }));
+        return;
+      }
+      
+      broadcast({ type: 'update_manual_qualified', group: { name: groupName, manualQualifiedCount: body.manualQualifiedCount } });
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, group: { name: groupName, manualQualifiedCount: body.manualQualifiedCount } }));
+    } catch(e) {
+      console.error('Error setting manual qualified count:', e);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: '服务器错误' }));
     }
