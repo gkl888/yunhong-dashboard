@@ -54,6 +54,13 @@ body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;over
 .group-stat-label{color:#666}
 .group-progress{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden}
 .group-progress-bar{height:100%;border-radius:4px;transition:width .5s}
+.group-leaders{display:flex;justify-content:space-between;font-size:.85em;margin-bottom:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.leader-info,.deputy-info{color:#aaa}
+.leader-name,.deputy-name{color:#00d4ff;font-weight:600}
+.group-task{margin-top:8px;padding:6px 10px;border-radius:6px;font-size:.88em;text-align:center}
+.group-task.done{background:rgba(46,204,113,.15);color:#2ecc71;border:1px solid rgba(46,204,113,.3)}
+.group-task.pending{background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.3)}
+.group-task .task-count{font-size:1.4em;font-weight:700;margin:0 4px}
 .group-members{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)}
 .group-member{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:.9em}
 .member-name{color:#00d4ff}
@@ -377,14 +384,22 @@ function renderData(data) {
   document.getElementById('totalDeals').textContent = data.stats.totalDeals;
   document.getElementById('avgDealSize').textContent = formatMoney(data.stats.avgDealSize);
   
-  // Groups
-  const sorted = [...data.groups].sort((a, b) => b.amount - a.amount);
+  // Groups - 按组名固定顺序排（不按业绩）
+  const sorted = [...data.groups].sort((a, b) => {
+    const na = parseInt(a.name);
+    const nb = parseInt(b.name);
+    return na - nb;
+  });
   const gList = document.getElementById('groupList');
   gList.innerHTML = '';
+  const TASK = 100000; // 达标任务10万
   sorted.forEach((g, i) => {
     const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
     const barColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
     const rateColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
+    // 达标任务：计算需达标的业务员数
+    const taskDone = Math.floor(g.amount / TASK); // 已完成几份达标任务
+    const taskStatus = taskDone > 0 ? 'done' : 'pending';
     
     gList.innerHTML += `
       <div class="group-item">
@@ -395,11 +410,18 @@ function renderData(data) {
           </div>
           <div class="group-rate" style="color:${rateColor}">${g.completionRate}%</div>
         </div>
+        <div class="group-leaders">
+          <span class="leader-info">👑 组长: <span class="leader-name">${g.leader || '未设置'}</span></span>
+          <span class="deputy-info">🥈 副组长: <span class="deputy-name">${g.deputy || '未设置'}</span></span>
+        </div>
         <div class="group-stats">
           <span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>
           <span><span class="group-stat-label">目标:</span> ${formatMoney(g.target||500000, true)}</span>
         </div>
         <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
+        <div class="group-task ${taskStatus}">
+          🎯 达标任务: <span class="task-count">${taskDone}</span> 份（每份10万）
+        </div>
       </div>`;
   });
   

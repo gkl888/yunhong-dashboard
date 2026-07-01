@@ -70,6 +70,8 @@ async function readData(month) {
     const groups = (groupsRes.data || []).map(g => ({
       name: g.name,
       target: g.target,
+      leader: g.leader || '',
+      deputy: g.deputy || '',
       amount: 0,
       completionRate: 0
     }));
