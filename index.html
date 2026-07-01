@@ -38,21 +38,27 @@ body{font-family:'Microsoft YaHei',sans-serif;background:#0a0e27;color:#fff;over
 .main{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding:0 30px 20px}
 
 /* 小组排名 */
-.group-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;border:1px solid rgba(102,126,234,.3)}
+.group-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:20px;border:1px solid rgba(102,126,234,.3);display:flex;flex-direction:column}
 .group-panel h2{font-size:1.2em;margin-bottom:15px;color:#ffd700;text-align:center}
-.group-item{display:flex;align-items:center;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.05);border-radius:10px;transition:all .3s}
+.group-item{display:flex;align-items:center;padding:12px;margin-bottom:10px;background:rgba(255,255,255,.05);border-radius:12px;transition:all .3s;flex-direction:column;align-items:stretch}
 .group-item:hover{background:rgba(255,255,255,.1)}
-.group-rank{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9em;margin-right:10px;flex-shrink:0}
-.group-rank.r1{background:linear-gradient(135deg,#ffd700,#ff8c00)}
+.group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.group-left{display:flex;align-items:center;gap:10px}
+.group-rank{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1em;flex-shrink:0}
+.group-rank.r1{background:linear-gradient(135deg,#ffd700,#ff8c00);box-shadow:0 0 15px rgba(255,215,0,.4)}
 .group-rank.r2{background:linear-gradient(135deg,#c0c0c0,#a0a0a0)}
 .group-rank.r3{background:linear-gradient(135deg,#cd7f32,#b87333)}
-.group-rank.rn{background:rgba(255,255,255,.2)}
-.group-info{flex:1}
-.group-name{font-weight:700;font-size:1em}
-.group-amount{font-size:.85em;color:#aaa}
-.group-progress{margin-top:5px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
-.group-progress-bar{height:100%;border-radius:3px;transition:width .5s}
-.group-rate{font-weight:700;font-size:1.1em;min-width:50px;text-align:right}
+.group-name{font-weight:700;font-size:1.1em}
+.group-rate{font-weight:700;font-size:1.2em;min-width:55px;text-align:right}
+.group-stats{display:flex;gap:15px;font-size:.85em;color:#aaa;margin-bottom:8px}
+.group-stat-label{color:#666}
+.group-progress{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden}
+.group-progress-bar{height:100%;border-radius:4px;transition:width .5s}
+.group-members{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)}
+.group-member{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:.9em}
+.member-name{color:#00d4ff}
+.member-amount{color:#ffd700;font-weight:600}
+.member-badge{font-size:.7em;padding:2px 6px;border-radius:10px;background:rgba(46,204,113,.2);color:#2ecc71;margin-left:5px}
 
 /* 趋势图 */
 .chart-panel{background:linear-gradient(135deg,#1a1f4e,#2d1b69);border-radius:15px;padding:18px 20px;border:1px solid rgba(102,126,234,.3);display:flex;flex-direction:column;align-items:center}
@@ -379,15 +385,29 @@ function renderData(data) {
     const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
     const barColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
     const rateColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
+    const membersHtml = (g.members || []).map(m => {
+      const qualified = m.amount >= 100000;
+      return `<div class="group-member">
+        <span class="member-name">${m.name}</span>
+        <span><span class="member-amount">${formatMoney(m.amount, true)}</span>${qualified ? '<span class="member-badge">达标</span>' : ''}</span>
+      </div>`;
+    }).join('');
+    
     gList.innerHTML += `
       <div class="group-item">
-        <div class="group-rank ${rankClass}">${i+1}</div>
-        <div class="group-info">
-          <div class="group-name">${g.name}</div>
-          <div class="group-amount">${formatMoney(g.amount, true)} / 目标 ${formatMoney(g.target||500000, true)}</div>
-          <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
+        <div class="group-header">
+          <div class="group-left">
+            <div class="group-rank ${rankClass}">${i+1}</div>
+            <div class="group-name">${g.name}</div>
+          </div>
+          <div class="group-rate" style="color:${rateColor}">${g.completionRate}%</div>
         </div>
-        <div class="group-rate" style="color:${rateColor}">${g.completionRate}%</div>
+        <div class="group-stats">
+          <span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>
+          <span><span class="group-stat-label">目标:</span> ${formatMoney(g.target||500000, true)}</span>
+        </div>
+        <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>
+        ${g.members && g.members.length > 0 ? `<div class="group-members">${membersHtml}</div>` : ''}
       </div>`;
   });
   
