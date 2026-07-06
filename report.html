@@ -86,6 +86,19 @@ tr:hover td { background: #152a45; }
 <div class="stats-row" id="statsRow"></div>
 
 <div class="section">
+  <h2>👤 个人业绩排行</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>排名</th><th>业务员</th><th>小组</th><th>完成金额</th><th>成单数</th><th>达标状态</th></tr>
+      </thead>
+      <tbody id="personBody"></tbody>
+    </table>
+    <div class="empty" id="personEmpty" style="display:none">暂无数据</div>
+  </div>
+</div>
+
+<div class="section">
   <h2>🏆 小组业绩汇总</h2>
   <div class="table-wrap">
     <table>
@@ -147,6 +160,7 @@ function loadReport() {
       currentData = data;
       renderStats(data);
       renderGroups(data.groups);
+      renderPersons(data.persons);
       renderDaily(data.daily);
       renderDeals(data.deals);
     })
@@ -195,6 +209,35 @@ function renderGroups(groups) {
   });
   
   empty.style.display = groups.length === 0 && groups.every(g => g.dealCount === 0) ? 'block' : 'none';
+}
+
+function renderPersons(persons) {
+  const tbody = document.getElementById('personBody');
+  const empty = document.getElementById('personEmpty');
+  tbody.innerHTML = '';
+  
+  if (!persons || persons.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  
+  const THRESHOLD = 100000;
+  persons.forEach((p, idx) => {
+    const gIdx = GROUPS.indexOf(p.groupName);
+    const color = gIdx >= 0 ? GROUP_COLORS[gIdx] : '#888';
+    const qualified = p.amount >= THRESHOLD;
+    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${medal}</td>
+      <td><strong>${p.name}</strong></td>
+      <td><span class="group-tag" style="background:${color}">${p.groupName}</span></td>
+      <td class="amount">${Number(p.amount).toLocaleString()}</td>
+      <td>${p.dealCount}</td>
+      <td>${qualified ? '<span class="rate rate-good">✅ 已达标</span>' : '<span class="rate rate-bad">❌ 未达标</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 function renderDaily(daily) {
@@ -250,6 +293,16 @@ function exportReport() {
   currentData.deals.forEach(d => {
     csv += `${d.id},${d.time},${d.groupName},${d.salesperson},${d.amount}\n`;
   });
+
+  // 追加个人业绩排行
+  if (currentData.persons && currentData.persons.length > 0) {
+    csv += '\n个人业绩排行\n';
+    csv += '排名,业务员,小组,完成金额,成单数,达标\n';
+    currentData.persons.forEach((p, idx) => {
+      const qualified = p.amount >= 100000 ? '是' : '否';
+      csv += `${idx + 1},${p.name},${p.groupName},${p.amount},${p.dealCount},${qualified}\n`;
+    });
+  }
   
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);

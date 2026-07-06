@@ -462,6 +462,17 @@ const server = http.createServer(async (req, res) => {
         groupReport[name].qualificationRate = totalPersons > 0 ? Math.round((qualifiedPersons / totalPersons) * 100) : 0;
       });
       
+      // 按业务员汇总（个人业绩）
+      const personMap = {};
+      filtered.forEach(d => {
+        if (!personMap[d.salesperson]) {
+          personMap[d.salesperson] = { name: d.salesperson, groupName: d.groupName, amount: 0, dealCount: 0 };
+        }
+        personMap[d.salesperson].amount += d.amount;
+        personMap[d.salesperson].dealCount++;
+      });
+      const personReport = Object.values(personMap).sort((a, b) => b.amount - a.amount);
+      
       // 按日期汇总（每日）
       const dailyMap = {};
       filtered.forEach(d => {
@@ -486,6 +497,7 @@ const server = http.createServer(async (req, res) => {
         totalTarget,
         overallCompletion: totalTarget > 0 ? Math.round((totalAmount / totalTarget) * 100) : 0,
         groups: Object.values(groupReport),
+        persons: personReport,
         daily: dailyReport,
         deals: filtered
       }));
