@@ -384,12 +384,8 @@ function renderData(data) {
   document.getElementById('totalDeals').textContent = data.stats.totalDeals;
   document.getElementById('avgDealSize').textContent = formatMoney(data.stats.avgDealSize);
   
-  // Groups - 按组名固定顺序排（不按业绩）
-  const sorted = [...data.groups].sort((a, b) => {
-    const na = parseInt(a.name);
-    const nb = parseInt(b.name);
-    return na - nb;
-  });
+  // Groups - 按实时业绩高低排序
+  const sorted = [...data.groups].sort((a, b) => b.amount - a.amount);
   const gList = document.getElementById('groupList');
   gList.innerHTML = '';
   sorted.forEach((g, i) => {
