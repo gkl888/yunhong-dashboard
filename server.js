@@ -521,16 +521,37 @@ const server = http.createServer(async (req, res) => {
         groupReport[name].qualificationRate = totalPersons > 0 ? Math.round((qualifiedPersons / totalPersons) * 100) : 0;
       });
       
+      // 获取各组遗留业绩数据
+      const { data: groupsData } = await supabase.from('groups').select('name,carryover_amount');
+      const carryoverMap = {}; // groupName -> [{name, amount}, ...]
+      (groupsData || []).forEach(g => {
+        carryoverMap[g.name] = Array.isArray(g.carryover_amount) ? g.carryover_amount : [];
+      });
+      
       // 按业务员汇总（个人业绩）
       const personMap = {};
       filtered.forEach(d => {
         if (!personMap[d.salesperson]) {
-          personMap[d.salesperson] = { name: d.salesperson, groupName: d.groupName, amount: 0, dealCount: 0 };
+          personMap[d.salesperson] = { name: d.salesperson, groupName: d.groupName, amount: 0, dealCount: 0, carryover: 0 };
         }
         personMap[d.salesperson].amount += d.amount;
         personMap[d.salesperson].dealCount++;
       });
-      const personReport = Object.values(personMap).sort((a, b) => b.amount - a.amount);
+      
+      // 加上遗留业绩
+      Object.values(personMap).forEach(p => {
+        const groupCarryover = carryoverMap[p.groupName] || [];
+        const personCarryover = groupCarryover.find(c => c.name === p.name);
+        if (personCarryover) {
+          p.carryover = personCarryover.amount || 0;
+          p.totalAmount = p.amount + p.carryover; // 总业绩 = 当月 + 遗留
+        } else {
+          p.totalAmount = p.amount;
+        }
+      });
+      
+      // 按总业绩排序
+      const personReport = Object.values(personMap).sort((a, b) => b.totalAmount - a.totalAmount);
       
       // 按日期汇总（每日）
       const dailyMap = {};

@@ -226,14 +226,25 @@ function renderPersons(persons) {
   persons.forEach((p, idx) => {
     const gIdx = GROUPS.indexOf(p.groupName);
     const color = gIdx >= 0 ? GROUP_COLORS[gIdx] : '#888';
-    const qualified = p.amount >= THRESHOLD;
+    const totalAmount = p.totalAmount || p.amount;
+    const qualified = totalAmount >= THRESHOLD;
     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1);
     const tr = document.createElement('tr');
+    
+    // 完成金额列：显示总金额，下方标注当月和遗留
+    let amountHtml = `<div class="amount">${Number(totalAmount).toLocaleString()}</div>`;
+    if (p.carryover > 0) {
+      amountHtml += `<div style="font-size:11px;color:#888;margin-top:2px">
+        <span style="color:#4ECDC4">当月:${Number(p.amount).toLocaleString()}</span> + 
+        <span style="color:#FF6B6B">遗留:${Number(p.carryover).toLocaleString()}</span>
+      </div>`;
+    }
+    
     tr.innerHTML = `
       <td>${medal}</td>
       <td><strong>${p.name}</strong></td>
       <td><span class="group-tag" style="background:${color}">${p.groupName}</span></td>
-      <td class="amount">${Number(p.amount).toLocaleString()}</td>
+      <td>${amountHtml}</td>
       <td>${p.dealCount}</td>
       <td>${qualified ? '<span class="rate rate-good">✅ 已达标</span>' : '<span class="rate rate-bad">❌ 未达标</span>'}</td>`;
     tbody.appendChild(tr);
