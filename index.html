@@ -396,10 +396,7 @@ function renderData(data) {
     const qualified = g.qualifiedCount || 0;
     const carryover = g.carryoverAmount || 0;
     const monthAmount = g.monthDealAmount || 0;
-    const statsHtml = carryover > 0
-      ? `<span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>
-         <span style="font-size:11px;color:#888">本月${formatMoney(monthAmount, false, true)}+遗留${formatMoney(carryover, true)}</span>`
-      : `<span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>`;
+    const statsHtml = `<span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>`;
 
     gList.innerHTML += `
       <div class="group-item">
