@@ -73,18 +73,26 @@ async function readData(month) {
       leader: g.leader || '',
       deputy: g.deputy || '',
       manualQualifiedCount: g.manual_qualified_count || 0,
-      carryoverAmount: g.carryover_amount || 0,
+      carryoverDetails: g.carryover_amount || [],
+      carryoverAmount: 0,
       amount: 0,
       monthDealAmount: 0,
       completionRate: 0
     }));
+
+    // 计算遗留业绩总额
+    groups.forEach(g => {
+      if (Array.isArray(g.carryoverDetails)) {
+        g.carryoverAmount = g.carryoverDetails.reduce((sum, item) => sum + (item.amount || 0), 0);
+      }
+    });
 
     // 计算各小组当月成单金额
     deals.forEach(deal => {
       const group = groups.find(g => g.name === deal.groupName);
       if (group) {
         group.monthDealAmount += deal.amount;
-        group.amount = group.monthDealAmount + (group.carryoverAmount || 0);
+        group.amount = group.monthDealAmount + group.carryoverAmount;
       }
     });
     
@@ -384,19 +392,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API: PUT /api/group/:name/carryover - 设置小组上个月遗留业绩
+  // API: PUT /api/group/:name/carryover - 设置小组上个月遗留业绩（JSON数组格式）
   if (req.method === 'PUT' && url.pathname.match(/^\/api\/group\/.+\/carryover$/)) {
     try {
       const groupName = decodeURIComponent(url.pathname.split('/')[3]);
       const body = await getRequestBody(req);
 
-      if (body === null || body.carryoverAmount === undefined) {
+      if (body === null || !body.carryoverDetails) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '缺少遗留业绩金额' }));
+        res.end(JSON.stringify({ error: '缺少遗留业绩明细' }));
         return;
       }
 
-      const { error } = await supabase.from('groups').update({ carryover_amount: body.carryoverAmount }).eq('name', groupName);
+      const { error } = await supabase.from('groups').update({ carryover_amount: body.carryoverDetails }).eq('name', groupName);
 
       if (error) {
         console.error('Supabase update carryover_amount error:', error);
@@ -405,10 +413,11 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      broadcast({ type: 'update_carryover', group: { name: groupName, carryoverAmount: body.carryoverAmount } });
+      const totalAmount = body.carryoverDetails.reduce((sum, item) => sum + (item.amount || 0), 0);
+      broadcast({ type: 'update_carryover', group: { name: groupName, carryoverDetails: body.carryoverDetails, carryoverAmount: totalAmount } });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, group: { name: groupName, carryoverAmount: body.carryoverAmount } }));
+      res.end(JSON.stringify({ success: true, group: { name: groupName, carryoverDetails: body.carryoverDetails, carryoverAmount: totalAmount } }));
     } catch(e) {
       console.error('Error setting carryover amount:', e);
       res.writeHead(500, { 'Content-Type': 'application/json' });

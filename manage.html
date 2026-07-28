@@ -41,15 +41,21 @@ tr:hover td { background: #152a45; }
 
 /* 达标人数管理面板 */
 .qualified-panel { background: #111d33; border: 1px solid #1e3a5f; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-.qualified-card { background: #0d2137; border: 1px solid #1e3a5f; border-radius: 8px; padding: 15px; min-width: 200px; }
+.qualified-card { background: #0d2137; border: 1px solid #1e3a5f; border-radius: 8px; padding: 15px; min-width: 280px; max-width: 350px; }
 .qualified-card .group-name { font-size: 16px; font-weight: bold; color: #00d4ff; margin-bottom: 10px; }
-.qualified-card .input-row { display: flex; align-items: center; gap: 10px; }
+.qualified-card .input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .qualified-card input { width: 60px; padding: 8px; border: 1px solid #1e3a5f; border-radius: 6px; background: #0a1628; color: #fff; font-size: 16px; text-align: center; }
-.qualified-card label { color: #aaa; font-size: 14px; }
-.qualified-card .save-btn { padding: 8px 16px; background: #28a745; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.qualified-card input.person-input { width: 100px; }
+.qualified-card input.amount-input { width: 110px; text-align: right; }
+.qualified-card label { color: #aaa; font-size: 14px; min-width: 70px; }
+.qualified-card .save-btn { padding: 8px 16px; background: #28a745; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 10px; }
 .qualified-card .save-btn:hover { background: #218838; }
 .qualified-card .current { color: #ffd700; font-size: 13px; margin-top: 8px; }
-.qualified-card .amount-input { width: 110px; }
+.qualified-card .person-list { margin-top: 10px; }
+.qualified-card .person-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.qualified-card .person-item input { flex: 1; }
+.qualified-card .add-person-btn { padding: 4px 10px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px; }
+.qualified-card .remove-person-btn { padding: 2px 6px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -307,43 +313,109 @@ function saveQualified(groupName) {
   .catch(err => alert('请求失败: ' + err));
 }
 
-// 加载上月遗留业绩
+// 各小组成员名单
+const GROUP_MEMBERS = {
+  '一组': ['王浩', '李江龙', '王轲', '张晓磊', '赵洋', '韦翰', '张俊毅'],
+  '二组': ['陈康丽', '邬成雷', '马姝婧', '周兆', '王哲昊', '蔡琳', '李永召', '吴涵涵'],
+  '三组': ['李敏', '杨凯', '冶俊', '杨瑞', '陶剑锋', '冯婉玲']
+};
+
+// 加载上月遗留业绩（按个人）
 function loadCarryover(groups) {
   const container = document.getElementById('carryoverList');
   container.innerHTML = '';
 
   GROUPS.forEach(gName => {
     const g = groups.find(x => x.name === gName) || {};
-    const carry = g.carryoverAmount || 0;
+    const details = g.carryoverDetails || [];
+    const total = details.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+    // 构建个人输入列表
+    let personInputs = '';
+    const members = GROUP_MEMBERS[gName] || [];
+
+    // 先显示已有数据的人员
+    details.forEach((item, idx) => {
+      personInputs += `
+        <div class="person-item" data-idx="${idx}">
+          <input type="text" class="person-input" placeholder="姓名" value="${item.name || ''}">
+          <input type="number" class="amount-input" placeholder="金额" value="${item.amount || 0}" min="0" step="0.01">
+          <button class="remove-person-btn" onclick="removePersonRow(this)">删除</button>
+        </div>
+      `;
+    });
+
+    // 为没有遗留业绩的成员也显示空行（方便输入）
+    members.forEach(member => {
+      if (!details.find(d => d.name === member)) {
+        personInputs += `
+          <div class="person-item">
+            <input type="text" class="person-input" placeholder="姓名" value="${member}">
+            <input type="number" class="amount-input" placeholder="金额" value="0" min="0" step="0.01">
+            <button class="remove-person-btn" onclick="removePersonRow(this)">删除</button>
+          </div>
+        `;
+      }
+    });
+
     const card = document.createElement('div');
     card.className = 'qualified-card';
+    card.id = 'carryover-card-' + gName;
     card.innerHTML = `
       <div class="group-name">${gName}</div>
-      <div class="input-row">
-        <label>上月遗留业绩:</label>
-        <input type="number" class="amount-input" id="carry-${gName}" value="${carry}" min="0" step="0.01">
-        <button class="save-btn" onclick="saveCarryover('${gName}')">保存</button>
+      <div class="person-list" id="person-list-${gName}">
+        ${personInputs}
       </div>
-      <div class="current">当前: ¥${carry.toLocaleString()}</div>
+      <button class="add-person-btn" onclick="addPersonRow('${gName}')">+ 添加人员</button>
+      <button class="save-btn" onclick="saveCarryover('${gName}')">💾 保存</button>
+      <div class="current">总遗留: ¥${total.toLocaleString()}</div>
     `;
     container.appendChild(card);
   });
 }
 
+// 添加人员行
+function addPersonRow(gName) {
+  const list = document.getElementById('person-list-' + gName);
+  const div = document.createElement('div');
+  div.className = 'person-item';
+  div.innerHTML = `
+    <input type="text" class="person-input" placeholder="姓名">
+    <input type="number" class="amount-input" placeholder="金额" value="0" min="0" step="0.01">
+    <button class="remove-person-btn" onclick="removePersonRow(this)">删除</button>
+  `;
+  list.appendChild(div);
+}
+
+// 删除人员行
+function removePersonRow(btn) {
+  btn.parentElement.remove();
+}
+
 // 保存上月遗留业绩
 function saveCarryover(groupName) {
-  const input = document.getElementById('carry-' + groupName);
-  const val = parseFloat(input.value) || 0;
+  const card = document.getElementById('carryover-card-' + groupName);
+  const items = card.querySelectorAll('.person-item');
+
+  const details = [];
+  items.forEach(item => {
+    const name = item.querySelector('.person-input').value.trim();
+    const amount = parseFloat(item.querySelector('.amount-input').value) || 0;
+    if (name && amount > 0) {
+      details.push({ name, amount });
+    }
+  });
 
   fetch('/api/group/' + encodeURIComponent(groupName) + '/carryover', {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ carryoverAmount: val })
+    body: JSON.stringify({ carryoverDetails: details })
   })
   .then(r => r.json())
   .then(res => {
     if (res.success) {
-      alert(groupName + ' 上月遗留业绩已更新为 ¥' + val.toLocaleString());
+      const total = details.reduce((sum, item) => sum + item.amount, 0);
+      alert(groupName + ' 上月遗留业绩已更新\n共 ' + details.length + ' 人，总计 ¥' + total.toLocaleString());
       loadDeals();
     } else {
       alert('保存失败: ' + (res.error || ''));
