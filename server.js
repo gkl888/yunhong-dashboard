@@ -73,14 +73,19 @@ async function readData(month) {
       leader: g.leader || '',
       deputy: g.deputy || '',
       manualQualifiedCount: g.manual_qualified_count || 0,
+      carryoverAmount: g.carryover_amount || 0,
       amount: 0,
+      monthDealAmount: 0,
       completionRate: 0
     }));
-    
-    // 计算各小组当月金额和完成率
+
+    // 计算各小组当月成单金额
     deals.forEach(deal => {
       const group = groups.find(g => g.name === deal.groupName);
-      if (group) group.amount += deal.amount;
+      if (group) {
+        group.monthDealAmount += deal.amount;
+        group.amount = group.monthDealAmount + (group.carryoverAmount || 0);
+      }
     });
     
     groups.forEach(g => {
@@ -373,6 +378,39 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: true, group: { name: groupName, manualQualifiedCount: body.manualQualifiedCount } }));
     } catch(e) {
       console.error('Error setting manual qualified count:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '服务器错误' }));
+    }
+    return;
+  }
+
+  // API: PUT /api/group/:name/carryover - 设置小组上个月遗留业绩
+  if (req.method === 'PUT' && url.pathname.match(/^\/api\/group\/.+\/carryover$/)) {
+    try {
+      const groupName = decodeURIComponent(url.pathname.split('/')[3]);
+      const body = await getRequestBody(req);
+
+      if (body === null || body.carryoverAmount === undefined) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '缺少遗留业绩金额' }));
+        return;
+      }
+
+      const { error } = await supabase.from('groups').update({ carryover_amount: body.carryoverAmount }).eq('name', groupName);
+
+      if (error) {
+        console.error('Supabase update carryover_amount error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '更新遗留业绩失败: ' + error.message }));
+        return;
+      }
+
+      broadcast({ type: 'update_carryover', group: { name: groupName, carryoverAmount: body.carryoverAmount } });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, group: { name: groupName, carryoverAmount: body.carryoverAmount } }));
+    } catch(e) {
+      console.error('Error setting carryover amount:', e);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: '服务器错误' }));
     }

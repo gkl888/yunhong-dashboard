@@ -394,7 +394,13 @@ function renderData(data) {
     const rateColor = g.completionRate >= 100 ? '#2ecc71' : g.completionRate >= 70 ? '#ffd700' : '#e74c3c';
     // 达标人数：业绩>=10万的业务员数
     const qualified = g.qualifiedCount || 0;
-    
+    const carryover = g.carryoverAmount || 0;
+    const monthAmount = g.monthDealAmount || 0;
+    const statsHtml = carryover > 0
+      ? `<span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>
+         <span style="font-size:11px;color:#888">本月${formatMoney(monthAmount, false, true)}+遗留${formatMoney(carryover, true)}</span>`
+      : `<span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>`;
+
     gList.innerHTML += `
       <div class="group-item">
         <div class="group-header">
@@ -409,7 +415,7 @@ function renderData(data) {
           <span class="deputy-info">🥈 副组长: <span class="deputy-name">${g.deputy || '未设置'}</span></span>
         </div>
         <div class="group-stats">
-          <span><span class="group-stat-label">业绩:</span> ${formatMoney(g.amount, true)}</span>
+          ${statsHtml}
           <span><span class="group-stat-label">目标:</span> ${formatMoney(g.target||500000, true)}</span>
         </div>
         <div class="group-progress"><div class="group-progress-bar" style="width:${Math.min(g.completionRate,100)}%;background:${barColor}"></div></div>

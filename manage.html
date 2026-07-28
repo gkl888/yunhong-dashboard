@@ -49,6 +49,7 @@ tr:hover td { background: #152a45; }
 .qualified-card .save-btn { padding: 8px 16px; background: #28a745; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
 .qualified-card .save-btn:hover { background: #218838; }
 .qualified-card .current { color: #ffd700; font-size: 13px; margin-top: 8px; }
+.qualified-card .amount-input { width: 110px; }
 </style>
 </head>
 <body>
@@ -62,6 +63,12 @@ tr:hover td { background: #152a45; }
     <a href="report.html" style="margin-left:8px">📊 月报表</a>
     <button class="btn-add" onclick="openAdd()" style="margin-left:12px;padding:6px 14px;background:#28a745;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">➕ 添加成单</button>
   </div>
+</div>
+
+<!-- 上月遗留业绩管理 -->
+<div class="qualified-panel">
+  <h2 style="font-size:16px;color:#00d4ff;margin-bottom:15px">📥 上月遗留业绩（手动添加）</h2>
+  <div id="carryoverList" style="display:flex;gap:15px;flex-wrap:wrap"></div>
 </div>
 
 <!-- 达标人数管理 -->
@@ -125,7 +132,8 @@ function loadDeals() {
     const empty = document.getElementById('empty');
     tbody.innerHTML = '';
     
-    // 加载达标人数
+    // 加载达标人数 + 上月遗留业绩
+    loadCarryover(data.groups);
     loadQualified(data.groups);
     
     if (!data.deals || data.deals.length === 0) {
@@ -281,7 +289,7 @@ function loadQualified(groups) {
 function saveQualified(groupName) {
   const input = document.getElementById('qual-' + groupName);
   const val = parseInt(input.value) || 0;
-  
+
   fetch('/api/group/' + encodeURIComponent(groupName) + '/manual-qualified', {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
@@ -291,6 +299,51 @@ function saveQualified(groupName) {
   .then(res => {
     if (res.success) {
       alert(groupName + ' 达标人数已更新为 ' + val + ' 人');
+      loadDeals();
+    } else {
+      alert('保存失败: ' + (res.error || ''));
+    }
+  })
+  .catch(err => alert('请求失败: ' + err));
+}
+
+// 加载上月遗留业绩
+function loadCarryover(groups) {
+  const container = document.getElementById('carryoverList');
+  container.innerHTML = '';
+
+  GROUPS.forEach(gName => {
+    const g = groups.find(x => x.name === gName) || {};
+    const carry = g.carryoverAmount || 0;
+    const card = document.createElement('div');
+    card.className = 'qualified-card';
+    card.innerHTML = `
+      <div class="group-name">${gName}</div>
+      <div class="input-row">
+        <label>上月遗留业绩:</label>
+        <input type="number" class="amount-input" id="carry-${gName}" value="${carry}" min="0" step="0.01">
+        <button class="save-btn" onclick="saveCarryover('${gName}')">保存</button>
+      </div>
+      <div class="current">当前: ¥${carry.toLocaleString()}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// 保存上月遗留业绩
+function saveCarryover(groupName) {
+  const input = document.getElementById('carry-' + groupName);
+  const val = parseFloat(input.value) || 0;
+
+  fetch('/api/group/' + encodeURIComponent(groupName) + '/carryover', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ carryoverAmount: val })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      alert(groupName + ' 上月遗留业绩已更新为 ¥' + val.toLocaleString());
       loadDeals();
     } else {
       alert('保存失败: ' + (res.error || ''));
