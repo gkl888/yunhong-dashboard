@@ -100,12 +100,24 @@ async function readData(month) {
       g.completionRate = Math.round((g.amount / g.target) * 100);
     });
     
-    // 计算每组达标人数（业绩>=10万的业务员）
+    // 计算每组达标人数（当月业绩+上月遗留>=10万的业务员）
     const personByGroup = {};
     deals.forEach(d => {
       const key = d.groupName + '|' + d.salesperson;
       if (!personByGroup[key]) personByGroup[key] = { group: d.groupName, salesperson: d.salesperson, amount: 0 };
       personByGroup[key].amount += d.amount;
+    });
+    // 加上上月遗留业绩
+    groups.forEach(g => {
+      if (Array.isArray(g.carryoverDetails)) {
+        g.carryoverDetails.forEach(item => {
+          const key = g.name + '|' + item.name;
+          if (!personByGroup[key]) {
+            personByGroup[key] = { group: g.name, salesperson: item.name, amount: 0 };
+          }
+          personByGroup[key].amount += item.amount || 0;
+        });
+      }
     });
     groups.forEach(g => {
       const members = Object.values(personByGroup).filter(p => p.group === g.name);
