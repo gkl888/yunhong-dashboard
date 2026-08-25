@@ -151,16 +151,32 @@ async function readData(month) {
     days.reverse();
     const dailyStats = days.map(item => ({ date: item.date, amount: dailyMap[item.date] || 0 }));
     
-    // 个人业绩排名（按销售员汇总）
+    // 个人业绩排名（按销售员汇总，包含上月遗留业绩）
     const personMap = {};
     deals.forEach(d => {
-      if (!personMap[d.salesperson]) personMap[d.salesperson] = 0;
-      personMap[d.salesperson] += d.amount;
+      if (!personMap[d.salesperson]) {
+        personMap[d.salesperson] = { monthAmount: 0, carryover: 0, groupName: d.groupName };
+      }
+      personMap[d.salesperson].monthAmount += d.amount;
     });
+    // 加上上月遗留业绩
+    groups.forEach(g => {
+      if (Array.isArray(g.carryoverDetails)) {
+        g.carryoverDetails.forEach(item => {
+          if (personMap[item.name]) {
+            personMap[item.name].carryover += item.amount || 0;
+          } else {
+            // 即使当月没成单但有遗留业绩的人也要显示
+            personMap[item.name] = { monthAmount: 0, carryover: item.amount || 0, groupName: g.name };
+          }
+        });
+      }
+    });
+    // 计算总业绩
     const top3 = Object.entries(personMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([name, amount]) => ({ name, amount }));
+      .map(([name, data]) => ({ name, amount: data.monthAmount + data.carryover, monthAmount: data.monthAmount, carryover: data.carryover, groupName: data.groupName }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
     // 按 2-1-3 顺序排列（领奖台样式：亚军-冠军-季军）
     const podium = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3;
     
