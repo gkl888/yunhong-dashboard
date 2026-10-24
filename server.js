@@ -554,16 +554,30 @@ const server = http.createServer(async (req, res) => {
         personMap[d.salesperson].dealCount++;
       });
       
-      // 加上遗留业绩
-      Object.values(personMap).forEach(p => {
-        const groupCarryover = carryoverMap[p.groupName] || [];
-        const personCarryover = groupCarryover.find(c => c.name === p.name);
-        if (personCarryover) {
-          p.carryover = personCarryover.amount || 0;
-          p.totalAmount = p.amount + p.carryover; // 总业绩 = 当月 + 遗留
-        } else {
-          p.totalAmount = p.amount;
+      // 建立全局姓名 -> 遗留业绩 映射（跨组匹配，避免个别成单记录组名录错导致匹配失败）
+      const personCarryoverMap = {}; // name -> amount
+      const carryoverGroupMap = {}; // name -> 所属组
+      Object.entries(carryoverMap).forEach(([gName, list]) => {
+        (Array.isArray(list) ? list : []).forEach(item => {
+          if (!item || !item.name) return;
+          const key = String(item.name).trim();
+          personCarryoverMap[key] = (personCarryoverMap[key] || 0) + (item.amount || 0);
+          carryoverGroupMap[key] = gName;
+        });
+      });
+
+      // 有遗留业绩但没有当月成单的人也要显示
+      Object.keys(personCarryoverMap).forEach(name => {
+        if (!personMap[name]) {
+          personMap[name] = { name, groupName: carryoverGroupMap[name], amount: 0, dealCount: 0, carryover: 0 };
         }
+      });
+
+      // 加上遗留业绩（按姓名全局匹配）
+      Object.values(personMap).forEach(p => {
+        const c = personCarryoverMap[String(p.name).trim()] || 0;
+        p.carryover = c;
+        p.totalAmount = p.amount + c; // 总业绩 = 当月 + 遗留
       });
       
       // 按总业绩排序
